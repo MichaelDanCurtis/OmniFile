@@ -5225,7 +5225,7 @@ components:
 
     GroupRef:
       examples:
-        - {"sid": "S-1-5-21-1000-2000-3000-1102", "display_name": "Geoscience readers", "sam_account_name": "geo-readers"}
+        - {"sid": "S-1-5-21-1000-2000-3000-1102", "display_name": "Data readers", "sam_account_name": "data-readers"}
       type: object
       required: [sid]
       properties:
@@ -5294,7 +5294,7 @@ components:
 
     Share:
       examples:
-        - {"share_id": "4", "name": "long-term-storage", "dataset_id": "2", "dataset_name": "seismic", "edge_id": "1", "root_dir_id": "100", "protocols": ["nfs4", "smb"], "nfs_sec": ["krb5p"], "nfs_clients": [], "root_squash": true, "trust_level": "proven", "host_trust_override": false, "groups": {"owners": {"sid": "S-1-5-21-1000-2000-3000-1100", "display_name": "Geo data owners", "sam_account_name": "geo-owners"}, "writers": null, "readers": {"sid": "S-1-5-21-1000-2000-3000-1102", "display_name": "Geoscience readers", "sam_account_name": "geo-readers"}}, "on_open": "auto", "wait_threshold_minutes": 30, "quiet_s": null, "quiet_default_s": 10, "quiet_supported": true, "edge_name": "edge-houston-1", "rewind": {"depth_days": 30, "max_days": 90, "labels": {"daily_at_utc": "00:00", "hourly_for_hours": 24}}, "worm": {"enabled": false, "mode": null, "retention_days": null, "enabled_at": null, "lock_deadline": null, "locked_at": null, "policy_state": "none"}, "last_full_acl_scan_at": "2026-10-06T09:30:00.000Z", "my_access": {"owner": false, "writer": false, "reader": true, "can_read_root": true}, "checks": [{"severity": "info", "code": "kerberos_throughput", "message": "krb5p costs about 77% of NFS IOPS.", "field": "nfs_sec", "share_id": "4", "fee": null}], "etag": "\"7\""}
+        - {"share_id": "4", "name": "long-term-storage", "dataset_id": "2", "dataset_name": "seismic", "edge_id": "1", "root_dir_id": "100", "protocols": ["nfs4", "smb"], "nfs_sec": ["krb5p"], "nfs_clients": [], "root_squash": true, "trust_level": "proven", "host_trust_override": false, "groups": {"owners": {"sid": "S-1-5-21-1000-2000-3000-1100", "display_name": "Geo data owners", "sam_account_name": "geo-owners"}, "writers": null, "readers": {"sid": "S-1-5-21-1000-2000-3000-1102", "display_name": "Data readers", "sam_account_name": "data-readers"}}, "on_open": "auto", "wait_threshold_minutes": 30, "quiet_s": null, "quiet_default_s": 10, "quiet_supported": true, "edge_name": "edge-houston-1", "rewind": {"depth_days": 30, "max_days": 90, "labels": {"daily_at_utc": "00:00", "hourly_for_hours": 24}}, "worm": {"enabled": false, "mode": null, "retention_days": null, "enabled_at": null, "lock_deadline": null, "locked_at": null, "policy_state": "none"}, "last_full_acl_scan_at": "2026-10-06T09:30:00.000Z", "my_access": {"owner": false, "writer": false, "reader": true, "can_read_root": true}, "checks": [{"severity": "info", "code": "kerberos_throughput", "message": "krb5p costs about 77% of NFS IOPS.", "field": "nfs_sec", "share_id": "4", "fee": null}], "etag": "\"7\""}
       type: object
       required: [share_id, name, dataset_id, root_dir_id, protocols, nfs_sec, trust_level, groups, on_open, quiet_s, quiet_default_s, quiet_supported, rewind, worm, my_access, checks, etag]
       properties:

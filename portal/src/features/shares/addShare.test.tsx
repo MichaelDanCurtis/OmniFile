@@ -93,7 +93,7 @@ describe("add a share", () => {
     const { user, db } = renderApp("/shares", { persona: "admin" });
     const dialog = await openDialog(user);
     await fillBasics(user, dialog, "gravity-2026");
-    await pickGroup(user, dialog, "Readers", "GG-Geoscience-All");
+    await pickGroup(user, dialog, "Readers", "GG-Data-Readers");
     await user.click(within(dialog).getByRole("radio", { name: /Wait only if it's quick/ }));
     const wait = within(dialog).getByLabelText("Wait at most");
     await user.clear(wait);
@@ -120,7 +120,7 @@ describe("add a share", () => {
       protocols: ["smb", "nfs4"],
       nfs_sec: ["krb5p"],
       owners_group_sid: SID.seismicOwners,
-      readers_group_sid: SID.geoscienceAll,
+      readers_group_sid: SID.dataReaders,
       on_open: "auto",
       wait_threshold_minutes: 10,
       smb_encrypt: false,

@@ -498,7 +498,7 @@ def test_clicks_through_the_real_relay(db_url, ca, api, sql, relay_pem, tmp_path
 
         asyncio.run(go())
 
-    # The geoscientist opens the stub; the worker sends the card.
+    # The user opens the stub; the worker sends the card.
     rid = start_recall(sql, s, p)
     sql.execute("SELECT pgmq.send('notify', %s::jsonb)", (json.dumps({"recall_id": str(rid)}),))
     worker(0)

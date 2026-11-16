@@ -40,7 +40,7 @@ test("an ArchiveAdmin starts a migration and cuts it over", async ({ page }) => 
   // 3. Access: all three groups.
   await pickGroup(page, "Owners", "GG-Seismic-Owners");
   await pickGroup(page, "Writers", "GG-Seismic-Writers");
-  await pickGroup(page, "Readers", "GG-Geoscience-All");
+  await pickGroup(page, "Readers", "GG-Data-Readers");
   await page.getByRole("button", { name: "Next" }).click();
 
   // 4. How: Storage Mover by default; switch over by hand.

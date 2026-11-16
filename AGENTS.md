@@ -14,7 +14,7 @@ This file is the anchor document. Read it before doing anything else in this rep
 
 ## What it does (the product in one scenario)
 
-1. A geoscientist copies `line_1042.segy` (184 GB) into `/long-term-storage/dataset` on the OmniFile share (NFS or SMB).
+1. A user copies `line_1042.segy` (184 GB) into `/long-term-storage/dataset` on the OmniFile share (NFS or SMB).
 2. The edge filer notices the write is complete (quiet period + SEG-Y structure check), hashes it, and uploads it to Azure Blob as a **plain block blob** — readable by any Azure tool.
 3. The file moves Hot → Cool → Cold → **Archive** on the schedule the client configured (or Smart tier + a fixed archive date). The local copy becomes a stub so disk is freed; the first few MB (SEG-Y headers) stay resident.
 4. Day 45: someone opens the file. OmniFile knows **who** (AD identity), starts a recall, and — per the share's policy — either makes the read wait (batch clusters) or fails fast with a clear note file. The person gets a **Teams card** with Recall / Keep online / Track buttons, and the card updates as the recall progresses.

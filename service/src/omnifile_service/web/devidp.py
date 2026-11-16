@@ -292,7 +292,7 @@ class DevIdp:
 def default_users(domain: str = "S-1-5-21-1000-2000-3000") -> list[DevUser]:
     """Seeded users for the dev stack: an ArchiveAdmin, a DataSteward and a
     User, in one AD domain. Group RIDs: 1100 admins, 1101 stewards, 1102
-    geoscience readers."""
+    data readers."""
     return [
         DevUser("admin", "11111111-1111-4111-8111-111111111111", "Ada Admin", "ada@dev.test",
                 f"{domain}-1001", (f"{domain}-1100",), ("ArchiveAdmin",)),

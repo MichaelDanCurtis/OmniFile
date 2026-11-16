@@ -44,7 +44,7 @@ async function chooseAccess(user: UserEvent) {
   expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
   await pickGroup(user, "Owners", "GG-Seismic-Owners");
   await pickGroup(user, "Writers", "GG-Seismic-Writers");
-  await pickGroup(user, "Readers", "GG-Geoscience-All");
+  await pickGroup(user, "Readers", "GG-Data-Readers");
   await next(user);
 }
 

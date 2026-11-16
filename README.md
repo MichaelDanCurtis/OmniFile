@@ -46,7 +46,7 @@ that protects an existing NAS without sitting in front of it.
 
 ## What it does
 
-A geoscientist copies a 184 GB survey line, `line_1042.segy`, to `/long-term-storage` on the share.
+A user copies a 184 GB survey line, `line_1042.segy`, to `/long-term-storage` on the share.
 
 1. **The gateway notices the write is finished** (a quiet period plus a SEG-Y structure check), hashes
    the file and uploads it to Azure Blob as a plain block blob.

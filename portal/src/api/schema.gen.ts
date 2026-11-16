@@ -3296,8 +3296,8 @@ export interface components {
         /**
          * @example {
          *       "sid": "S-1-5-21-1000-2000-3000-1102",
-         *       "display_name": "Geoscience readers",
-         *       "sam_account_name": "geo-readers"
+         *       "display_name": "Data readers",
+         *       "sam_account_name": "data-readers"
          *     }
          */
         GroupRef: {
@@ -3448,8 +3448,8 @@ export interface components {
          *         "writers": null,
          *         "readers": {
          *           "sid": "S-1-5-21-1000-2000-3000-1102",
-         *           "display_name": "Geoscience readers",
-         *           "sam_account_name": "geo-readers"
+         *           "display_name": "Data readers",
+         *           "sam_account_name": "data-readers"
          *         }
          *       },
          *       "on_open": "auto",

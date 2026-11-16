@@ -1,7 +1,7 @@
 """Shared by tests/notify and tests/api/test_teams_intents.py: catalog rows for a Teams
 scenario, the fakes wired to a `Notifier`, and the relay (imported from ../relay/src).
 
-The scenario (AGENTS.md "What it does"): a geoscientist in AD group "Seismic" opens
+The scenario (AGENTS.md "What it does"): a user in AD group "Seismic" opens
 `line_1042.segy`, archived, in /long-term-storage/dataset. The file's ACL lets "Seismic" read.
 """
 
