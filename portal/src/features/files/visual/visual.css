@@ -1,0 +1,889 @@
+/*
+ * The visual views (WP13): file journey, share map, policy timeline.
+ * Built on the tier tokens of tokens.css, so a tier has one colour everywhere.
+ * Text sits on the -soft shade in the -ink shade (at least 5.2:1 in both
+ * themes); marks are drawn in the tier colour with an -ink outline, so every
+ * mark keeps 3:1 against the surface (Cool's amber alone is 2.3:1 on white).
+ * data-motion="reduce" (and prefers-reduced-motion) draws the same, still.
+ */
+
+.vis-t,
+.journey-station,
+.journey-marker,
+.vis-swatch,
+.map-node,
+.tl-seg,
+.tl-handle {
+  --t: var(--muted);
+  --t-ink: var(--ink-2);
+  --t-soft: var(--surface-3);
+}
+
+:is(
+  .vis-t,
+  .journey-station,
+  .journey-marker,
+  .vis-swatch,
+  .map-node,
+  .tl-seg,
+  .tl-handle
+)[data-tier="edge"] {
+  --t: var(--ok);
+  --t-ink: var(--ok);
+  --t-soft: var(--ok-soft);
+}
+
+:is(
+  .vis-t,
+  .journey-station,
+  .journey-marker,
+  .vis-swatch,
+  .map-node,
+  .tl-seg,
+  .tl-handle
+)[data-tier="hot"] {
+  --t: var(--tier-hot);
+  --t-ink: var(--tier-hot-ink);
+  --t-soft: var(--tier-hot-soft);
+}
+
+:is(
+  .vis-t,
+  .journey-station,
+  .journey-marker,
+  .vis-swatch,
+  .map-node,
+  .tl-seg,
+  .tl-handle
+)[data-tier="warm"] {
+  --t: var(--tier-warm);
+  --t-ink: var(--tier-warm-ink);
+  --t-soft: var(--tier-warm-soft);
+}
+
+:is(
+  .vis-t,
+  .journey-station,
+  .journey-marker,
+  .vis-swatch,
+  .map-node,
+  .tl-seg,
+  .tl-handle
+)[data-tier="cold"] {
+  --t: var(--tier-cold);
+  --t-ink: var(--tier-cold-ink);
+  --t-soft: var(--tier-cold-soft);
+}
+
+:is(
+  .vis-t,
+  .journey-station,
+  .journey-marker,
+  .vis-swatch,
+  .map-node,
+  .tl-seg,
+  .tl-handle
+)[data-tier="archive"] {
+  --t: var(--tier-archive);
+  --t-ink: var(--tier-archive-ink);
+  --t-soft: var(--tier-archive-soft);
+}
+
+:is(
+  .vis-t,
+  .journey-station,
+  .journey-marker,
+  .vis-swatch,
+  .map-node,
+  .tl-seg,
+  .tl-handle
+)[data-tier="smart"] {
+  --t: var(--tier-smart);
+  --t-ink: var(--tier-smart-ink);
+  --t-soft: var(--tier-smart-soft);
+}
+
+/* ---------- legend ---------- */
+
+.vis-legend {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.vis-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vis-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--t);
+  box-shadow: inset 0 0 0 1.5px var(--t-ink);
+}
+
+.vis-swatch[data-tier="smart"] {
+  background: repeating-linear-gradient(-45deg, var(--t) 0 3px, var(--t-soft) 3px 6px);
+}
+
+/* ---------- file journey ---------- */
+
+.journey-now {
+  margin: 0;
+}
+
+.journey {
+  position: relative;
+  padding-top: 4px;
+}
+
+.journey-track {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--n, 5), minmax(0, 1fr));
+  position: relative;
+}
+
+/* The rail, from the first station's dot to the last. */
+.journey-track::before {
+  content: "";
+  position: absolute;
+  top: 15px;
+  left: 10%;
+  right: 10%;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--ok) 0 20%,
+    var(--tier-hot) 20% 40%,
+    var(--tier-warm) 40% 60%,
+    var(--tier-cold) 60% 80%,
+    var(--tier-archive) 80% 100%
+  );
+  opacity: 0.35;
+}
+
+.journey-station {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 3px;
+  padding: 0 2px 8px;
+  border-radius: var(--radius);
+  text-align: center;
+  min-width: 0;
+}
+
+.journey-station[data-here]:not([data-smart]) {
+  background: linear-gradient(var(--t-soft), transparent 85%);
+}
+
+.journey-dot {
+  position: relative;
+  z-index: 1;
+  width: 20px;
+  height: 20px;
+  margin: 6px 0 2px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--t-ink);
+}
+
+.journey-station[data-here] .journey-dot {
+  background: var(--t);
+}
+
+.journey-station[data-cached="whole"] .journey-dot {
+  background: var(--t);
+}
+
+.journey-station[data-cached="stub"] .journey-dot {
+  background: repeating-linear-gradient(90deg, var(--t) 0 2px, var(--surface) 2px 5px);
+}
+
+.journey-station[data-smart] {
+  background: linear-gradient(var(--tier-smart-soft), transparent 70%);
+}
+
+.journey-station[data-smart]:nth-child(2) {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.journey-station[data-smart]:nth-child(4) {
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.journey-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.journey-station[data-here] .journey-name {
+  color: var(--t-ink);
+}
+
+.journey-hint {
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+/* The file itself: a ring over its station, sliding when it moves. */
+.journey-marker,
+.journey-travel {
+  position: absolute;
+  top: 2px;
+  left: calc((var(--pos) + 0.5) / var(--n, 5) * 100%);
+  width: 28px;
+  height: 28px;
+  margin-left: -14px;
+  border-radius: 50%;
+  pointer-events: none;
+  transition: left 600ms var(--ease);
+}
+
+.journey-marker {
+  border: 3px solid var(--t-ink);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--t) 25%, transparent);
+}
+
+/* A copy coming back: an accent chip that travels Archive -> Edge with the steps. */
+.journey-travel {
+  top: 5px;
+  width: 22px;
+  height: 22px;
+  margin-left: -11px;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: 0 0 0 3px var(--surface);
+  z-index: 2;
+}
+
+.journey-travel[data-step="rehydrating"],
+.journey-travel[data-step="downloading"],
+.journey-travel[data-step="requested"] {
+  animation: journey-pulse 1.6s var(--ease) infinite;
+}
+
+.journey-travel[data-step="failed"] {
+  background: var(--danger);
+  /* Dark ink in dark mode: white on the dark theme's light red is 2.2:1. */
+  color: var(--accent-ink);
+}
+
+@keyframes journey-pulse {
+  50% {
+    box-shadow:
+      0 0 0 3px var(--surface),
+      0 0 0 7px color-mix(in srgb, var(--accent) 30%, transparent);
+  }
+}
+
+/* Keep online: a band over the gateway and Hot, the part a hold keeps. */
+.journey-band {
+  display: block;
+  margin: 6px 0 0;
+  width: 40%;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--ok-soft);
+  color: var(--ok);
+  font-size: 11px;
+  font-weight: 650;
+  text-align: center;
+}
+
+.journey[data-motion="reduce"] .journey-marker,
+.journey[data-motion="reduce"] .journey-travel {
+  transition: none;
+  animation: none;
+}
+
+.journey-next,
+.journey-times {
+  margin: 0;
+}
+
+.journey-recall {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+}
+
+.journey-recall[data-step="failed"] {
+  background: var(--danger-soft);
+}
+
+.journey-recall p {
+  margin: 0;
+}
+
+.journey-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  font-size: 12px;
+}
+
+.journey-steps li {
+  padding: 4px 2px 0;
+  border-top: 3px solid var(--border);
+  color: var(--muted);
+  text-align: center;
+}
+
+.journey-steps li[data-status="done"] {
+  border-top-color: var(--accent);
+  color: var(--ink-2);
+}
+
+.journey-steps li[data-status="current"] {
+  border-top-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.journey-steps li[data-status="failed"] {
+  border-top-color: var(--danger);
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.journey-holds {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.journey-holds li {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.journey-holds li > svg {
+  margin-top: 3px;
+}
+
+.journey-meter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.journey-meter-bar {
+  flex: 0 0 120px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  box-shadow: inset 0 0 0 1px var(--border);
+  overflow: hidden;
+}
+
+.journey-meter-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--ok);
+}
+
+/* ---------- share map ---------- */
+
+.map {
+  display: grid;
+  gap: 14px;
+}
+
+.map-flow {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.8fr) minmax(170px, 1fr) minmax(190px, 1.2fr) minmax(
+      170px,
+      1fr
+    );
+  gap: 22px;
+  align-items: stretch;
+}
+
+.map-flow[data-cols="5"] {
+  grid-template-columns: minmax(120px, 0.7fr) repeat(4, minmax(150px, 1fr));
+}
+
+.map-col {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  min-width: 0;
+}
+
+/* The arrow from each column to the next. */
+.map-col + .map-col::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: -22px;
+  width: 22px;
+  height: 2px;
+  background: var(--border-strong);
+}
+
+.map-col + .map-col::after {
+  content: "";
+  position: absolute;
+  top: calc(50% - 4px);
+  left: -9px;
+  border: 5px solid transparent;
+  border-left-color: var(--border-strong);
+}
+
+.map-col-head {
+  display: grid;
+  gap: 2px;
+}
+
+.map-col-head h3 {
+  font-size: 13.5px;
+  margin: 0;
+}
+
+.map-col-sub {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.map-node {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--t-ink);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.map-node:hover {
+  background: var(--t-soft);
+}
+
+.map-node[aria-pressed="true"] {
+  background: var(--t-soft);
+  outline: 2px solid var(--t-ink);
+  outline-offset: -1px;
+}
+
+.map-node[data-empty] {
+  opacity: 0.75;
+}
+
+.map-node-name {
+  font-weight: 650;
+  font-size: 13px;
+  color: var(--t-ink);
+}
+
+.map-node-count {
+  font-size: 12px;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.map-node-bar {
+  grid-column: 1 / -1;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.map-node-bar > span {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  background: var(--t);
+  box-shadow: inset 0 0 0 1px var(--t-ink);
+}
+
+.map-users {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+
+/* Things in flight: recalls coming back, migrations coming in. */
+.map-lanes {
+  display: grid;
+  gap: 8px;
+}
+
+.map-lane {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.35fr) 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  font-size: 13px;
+}
+
+.map-lane-track {
+  position: relative;
+  height: 24px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  overflow: hidden;
+}
+
+.map-lane-track::before {
+  content: "";
+  position: absolute;
+  top: 11px;
+  left: 12px;
+  right: 12px;
+  border-top: 2px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.map-item {
+  position: absolute;
+  top: 3px;
+  left: calc(var(--at) * (100% - 40px) + 2px);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  animation: map-drift 2.4s var(--ease) infinite alternate;
+}
+
+.map-item[data-kind="migration"] {
+  background: var(--tier-smart-ink);
+  color: var(--surface);
+}
+
+@keyframes map-drift {
+  to {
+    transform: translateX(var(--drift, -10px));
+  }
+}
+
+.map[data-motion="reduce"] .map-item {
+  animation: none;
+}
+
+.map-files {
+  display: grid;
+  gap: 10px;
+}
+
+.map-scope {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* ---------- policy timeline ---------- */
+
+.tl {
+  display: grid;
+  gap: 6px;
+  margin: 4px 0 2px;
+}
+
+.tl-track {
+  position: relative;
+  margin-top: 20px;
+  height: 54px;
+  border-radius: var(--radius);
+  background: var(--surface-3);
+  touch-action: none;
+  user-select: none;
+}
+
+.tl-seg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 10px 0 16px;
+  overflow: hidden;
+  background: var(--t-soft);
+  border-top: 5px solid var(--t);
+  color: var(--t-ink);
+  transition:
+    left 160ms var(--ease),
+    width 160ms var(--ease);
+}
+
+.tl-seg:first-child {
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+.tl-seg:last-of-type {
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.tl-seg[data-tier="smart"] {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--t-soft) 0 10px,
+    color-mix(in srgb, var(--t) 14%, var(--t-soft)) 10px 20px
+  );
+}
+
+/* A tier left before its minimum: hatched in the warning colour. */
+.tl-seg[data-short] {
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent 0 6px,
+    color-mix(in srgb, var(--warn) 24%, transparent) 6px 9px
+  );
+}
+
+.tl-seg-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tl-seg-sub {
+  font-size: 11px;
+  white-space: nowrap;
+  opacity: 0.9;
+}
+
+.tl[data-dragging] .tl-seg,
+.tl[data-motion="reduce"] .tl-seg {
+  transition: none;
+}
+
+.tl-handle {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 24px;
+  margin-left: -12px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: ew-resize;
+  z-index: 2;
+}
+
+.tl-handle::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 11px;
+  width: 2px;
+  background: var(--t-ink);
+}
+
+.tl-knob {
+  position: relative;
+  width: 16px;
+  height: 26px;
+  border-radius: 5px;
+  background: var(--surface);
+  border: 2px solid var(--t-ink);
+  box-shadow: var(--shadow-1);
+}
+
+.tl-knob::after {
+  content: "";
+  position: absolute;
+  inset: 6px 4px;
+  border-left: 1.5px solid var(--t-ink);
+  border-right: 1.5px solid var(--t-ink);
+}
+
+.tl-handle:focus-visible {
+  outline: none;
+}
+
+.tl-handle:focus-visible .tl-knob {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.tl-handle[data-check="warning"] .tl-knob {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.tl-handle[data-check="error"] .tl-knob {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.tl-flag {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--warn-soft);
+  color: var(--warn);
+  box-shadow: inset 0 0 0 1.5px var(--warn);
+}
+
+.tl-handle[data-check="error"] .tl-flag {
+  background: var(--danger-soft);
+  color: var(--danger);
+  box-shadow: inset 0 0 0 1.5px var(--danger);
+}
+
+.tl-axis {
+  position: relative;
+  height: 20px;
+}
+
+.tl-tick {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.tl-tick[data-edge="start"] {
+  transform: none;
+}
+
+.tl-tick[data-edge="end"] {
+  transform: translateX(-100%);
+}
+
+.tl-year {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 1.5px dashed color-mix(in srgb, var(--ink) 45%, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.tl-notes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 12.5px;
+}
+
+.tl-notes li {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 6px;
+  align-items: start;
+}
+
+.tl-notes li[data-severity="warning"] {
+  color: var(--warn);
+}
+
+.tl-notes li[data-severity="error"] {
+  color: var(--danger);
+}
+
+.tl-notes li > svg {
+  margin-top: 2px;
+}
+
+.tl-help {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* ---------- tablet and narrow ---------- */
+
+@media (max-width: 1099px) {
+  .map-flow,
+  .map-flow[data-cols="5"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .map-col + .map-col::before,
+  .map-col + .map-col::after {
+    display: none;
+  }
+
+  .map-lane {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .map-flow,
+  .map-flow[data-cols="5"] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .journey-marker,
+  .journey-travel,
+  .map-item,
+  .tl-seg {
+    transition: none;
+    animation: none;
+  }
+}

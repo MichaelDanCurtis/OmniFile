@@ -1,0 +1,33 @@
+#!/usr/sbin/nft -f
+# The appliance's inbound firewall (omnifile-firewall.service). Everything a client or an admin
+# connects to is listed here, on fixed ports; anything else coming in is dropped. Outbound is
+# open: the service, storage, the domain controllers and the update feed are all reached
+# outbound. The same list is in the customer guide's troubleshooting table (docs/guide).
+#
+#   22/tcp                SSH (the admin group; the break-glass account is console only)
+#   445/tcp               SMB
+#   111/tcp, 111/udp      rpcbind (NFSv3)
+#   2049/tcp              NFS (v3 and v4)
+#   20048/tcp, 20048/udp  MOUNT (NFSv3; Ganesha MNT_Port)
+#   32803/tcp, 32803/udp  NLM, NFSv3 locks (Ganesha NLM_Port)
+#   32765/tcp, 32765/udp  rpc.statd (NSM: lock recovery after a restart); its replies leave
+#                         from 32766 (outbound)
+#   68/udp, 546/udp       DHCP replies (v4, v6), ICMP and ICMPv6
+flush ruleset
+
+table inet omnifile {
+	chain input {
+		type filter hook input priority filter; policy drop;
+		iif lo accept
+		ct state established,related accept
+		ct state invalid drop
+		meta l4proto { icmp, ipv6-icmp } accept
+		udp dport { 68, 546 } accept
+		tcp dport { 22, 445, 111, 2049, 20048, 32803, 32765 } accept
+		udp dport { 111, 20048, 32803, 32765 } accept
+		counter comment "dropped"
+	}
+	chain forward {
+		type filter hook forward priority filter; policy drop;
+	}
+}

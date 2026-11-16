@@ -1,0 +1,184 @@
+{
+  "_comment": "What the fake az 'deploys' for deploy/azure/main.bicep with test.bicepparam: the resource types and names the template makes (main.bicep, modules/), each tagged from OMNIFILE_RUN_ID and OMNIFILE_RUN_EXPIRES as test.bicepparam passes them. {p} is the namePrefix. Not a model of ARM: enough for teardown by tag and its proof.",
+  "resources": [
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "{p}-vnet"
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "nsg-{p}-cae-internal"
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "nsg-{p}-cae-relay"
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "nsg-{p}-postgres"
+    },
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "nsg-{p}-private-endpoints"
+    },
+    {
+      "type": "Microsoft.App/managedEnvironments",
+      "name": "cae-{p}-internal"
+    },
+    {
+      "type": "Microsoft.App/managedEnvironments",
+      "name": "cae-{p}-relay"
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "name": "{p}-api"
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "name": "{p}-enrol"
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "name": "{p}-web"
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "name": "{p}-worker"
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "name": "{p}-relay"
+    },
+    {
+      "type": "Microsoft.App/jobs",
+      "name": "{p}-verifier"
+    },
+    {
+      "type": "Microsoft.DBforPostgreSQL/flexibleServers",
+      "name": "pg-{p}"
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "st{p}live",
+      "kind": "live"
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "st{p}arch",
+      "kind": "archive"
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "st{p}wtst",
+      "kind": "worm"
+    },
+    {
+      "type": "Microsoft.KeyVault/vaults",
+      "name": "kv-{p}"
+    },
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "name": "id-{p}-api"
+    },
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "name": "id-{p}-enrol"
+    },
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "name": "id-{p}-web"
+    },
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "name": "id-{p}-worker"
+    },
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "name": "id-{p}-verifier"
+    },
+    {
+      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+      "name": "id-{p}-relay"
+    },
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "name": "log-{p}"
+    },
+    {
+      "type": "Microsoft.Insights/components",
+      "name": "appi-{p}"
+    },
+    {
+      "type": "Microsoft.BotService/botServices",
+      "name": "bot-{p}"
+    }
+  ],
+  "role_definitions": [
+    "OmniFile SAS Minter",
+    "OmniFile Blob Worker",
+    "OmniFile WORM Policy Manager",
+    "OmniFile Job Starter"
+  ],
+  "worm_containers": [
+    "data",
+    "recall",
+    "omnifile-exports"
+  ],
+  "outputs": {
+    "apiUrl": "https://{p}-api.internal.example:8443",
+    "relayPublicUrl": "https://{p}-relay.example.azurecontainerapps.io",
+    "internalEnvironmentDefaultDomain": "internal.example",
+    "internalEnvironmentStaticIp": "10.60.0.10",
+    "postgresHost": "pg-{p}.postgres.database.azure.com",
+    "postgresDatabase": "omnifile",
+    "logAnalyticsWorkspaceId": "55555555-6666-7777-8888-999999999999",
+    "applicationInsightsId": "/subscriptions/x/resourceGroups/y/providers/Microsoft.Insights/components/appi-{p}",
+    "teamsBotAppId": "22222222-3333-4444-5555-666666666666",
+    "identityPrincipalIds": {
+      "api": "a1",
+      "enrol": "a2",
+      "web": "33333333-4444-5555-6666-777777777777",
+      "worker": "44444444-5555-6666-7777-888888888888",
+      "verifier": "a5",
+      "relay": "a6"
+    },
+    "storageAccounts": {
+      "live": "st{p}live",
+      "archive": "st{p}arch",
+      "worm": {
+        "tst": "st{p}wtst"
+      }
+    },
+    "enrolUrl": "https://{p}-enrol.internal.example",
+    "webUrl": "https://{p}-web.internal.example",
+    "keyVaultName": "kv-{p}",
+    "vnetId": "{rgid}/providers/Microsoft.Network/virtualNetworks/{p}-vnet",
+    "privateEndpointSubnetId": "{rgid}/providers/Microsoft.Network/virtualNetworks/{p}-vnet/subnets/snet-private-endpoints",
+    "privateEndpointTargets": [
+      {
+        "resourceId": "{rgid}/providers/Microsoft.Storage/storageAccounts/st{p}live",
+        "groupId": "blob",
+        "privateDnsZone": "privatelink.blob.core.windows.net"
+      },
+      {
+        "resourceId": "{rgid}/providers/Microsoft.Storage/storageAccounts/st{p}arch",
+        "groupId": "blob",
+        "privateDnsZone": "privatelink.blob.core.windows.net"
+      },
+      {
+        "resourceId": "{rgid}/providers/Microsoft.Storage/storageAccounts/st{p}wtst",
+        "groupId": "blob",
+        "privateDnsZone": "privatelink.blob.core.windows.net"
+      },
+      {
+        "resourceId": "{rgid}/providers/Microsoft.KeyVault/vaults/kv-{p}",
+        "groupId": "vault",
+        "privateDnsZone": "privatelink.vaultcore.azure.net"
+      }
+    ],
+    "requiredPrivateDnsZones": [
+      "privatelink.blob.core.windows.net",
+      "privatelink.vaultcore.azure.net"
+    ]
+  }
+}

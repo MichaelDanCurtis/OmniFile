@@ -1,0 +1,44 @@
+# Source code for the OmniFile edge appliance {{RELEASE}}
+
+The OmniFile edge appliance image {{RELEASE}} contains software licensed under the GNU General Public License
+(versions 2 and 3), the GNU Lesser General Public License (versions 2.1 and 3) and other licences that require
+the corresponding source code to be made available. Among them: the Linux kernel, Samba and winbind, parts of
+systemd, GnuPG, NFS-Ganesha (with the OmniFile module FSAL_OMNI, LGPL-3.0) and the OmniFile Samba module
+vfs_omnifile_prevver (GPL-3.0-or-later).
+
+## Where the source is
+
+The complete corresponding source for this release is published at no charge, in the public repository
+<https://github.com/{{SOURCES_REPO}}>, as its GitHub Release **{{TAG}}**:
+
+<https://github.com/{{SOURCES_REPO}}/releases/tag/{{TAG}}>
+
+There is one release there for each appliance release. Download every `omnifile-edge-{{RELEASE}}-sources-*.tar`
+archive and unpack them all into one folder (`ASSETS.SHA256SUMS` lists the archives' SHA-256). Together they hold:
+
+- {{UBUNTU_SOURCES}} Ubuntu source packages (`ubuntu/`), exactly the versions in the image, as Ubuntu's archive
+  had them on {{SNAPSHOT}} (`https://snapshot.ubuntu.com/ubuntu/{{SNAPSHOT}}/`, suites resolute,
+  resolute-updates and resolute-security). `packages.tsv` maps every binary package in the image to its
+  source package.
+- `upstream/`: the Samba release the OmniFile Samba module is built in, with Samba's signature, and NFS-Ganesha
+  and libntirpc at the exact commits the image's Ganesha is built from.
+- `omnifile/`: the source of FSAL_OMNI (`fsal.tar.gz`, LGPL-3.0, including the scripts that build Ganesha with it)
+  and of vfs_omnifile_prevver (`samba-vfs.tar.gz`, GPL-3.0-or-later, including its build script).
+
+`MANIFEST.json`, `SHA256SUMS`, `packages.tsv` and this file are attached to the release on their own as well.
+In the unpacked folder, `sha256sum -c SHA256SUMS` checks every file. About {{TOTAL_MB}} MB in all.
+
+## Written offer
+
+For at least three years from the date this release was first distributed, and for as long as we offer spare
+parts or customer support for it, we will give anyone who asks a complete machine-readable copy of the
+corresponding source code of the software in this image that is licensed under the GPL or LGPL, on a medium
+customarily used for software interchange, for no more than our reasonable cost of physically performing the
+distribution. To ask, open an issue at:
+
+<https://github.com/{{SOURCES_REPO}}/issues>
+
+{{CONTACT_EXTRA}}Name the release ({{RELEASE}}) in the request. The OmniFile components that are not under those
+licences (the edge daemon and its tools, under the Business Source License 1.1) are not covered by this offer.
+
+Generated {{DATE}} by `appliance/source-offer/source_offer.py`.

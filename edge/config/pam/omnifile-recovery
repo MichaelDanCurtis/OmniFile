@@ -1,0 +1,6 @@
+Name: OmniFile recovery account: record every session (break-glass, access-control.md 8)
+Default: yes
+Priority: 0
+Session-Type: Additional
+Session:
+	optional	pam_exec.so quiet /usr/local/bin/omnifile-setup recovery-used

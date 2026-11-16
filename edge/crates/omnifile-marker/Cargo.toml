@@ -1,0 +1,19 @@
+[package]
+name = "omnifile-marker"
+description = "OmniFile Gateway stub marker: the 64-byte trusted.omnifile xattr and its optional chunk map (docs/contracts/fsal-socket.md §8)"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+# Raw xattr syscalls (fgetxattr/fsetxattr/fremovexattr). MIT OR Apache-2.0.
+libc = "0.2"
+
+[dev-dependencies]
+# Independent CRC-32C (Castagnoli) used only to cross-check the in-crate one. MIT OR Apache-2.0.
+crc-fast = { version = "1.10", default-features = false, features = ["std"] }
+# Property tests for the codec. MIT OR Apache-2.0.
+proptest = "1"
+# Temporary files on the xfs volume in Linux tests. MIT OR Apache-2.0.
+tempfile = "3"

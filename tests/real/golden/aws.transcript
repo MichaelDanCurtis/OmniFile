@@ -1,0 +1,292 @@
+boto3 sts.GetCallerIdentity {}
+boto3 sts.GetCallerIdentity {}
+boto3 iam.GetRole {"RoleName": "omnifile-real-batch-ops"}
+boto3 iam.GetRole {"RoleName": "omnifile-real-probe"}
+boto3 iam.GetInstanceProfile {"InstanceProfileName": "omnifile-real-probe"}
+boto3 iam.ListRoles {"PathPrefix": "/aws-service-role/rolesanywhere.amazonaws.com/"}
+boto3 s3.CreateBucket {"Bucket": "ofreal-rr-dry-0001-src", "CreateBucketConfiguration": {"LocationConstraint": "us-west-2"}}
+boto3 s3.PutBucketTagging {"Bucket": "ofreal-rr-dry-0001-src", "Tagging": {"TagSet": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}}
+boto3 s3.PutBucketVersioning {"Bucket": "ofreal-rr-dry-0001-src", "VersioningConfiguration": {"Status": "Enabled"}}
+boto3 s3.PutPublicAccessBlock {"Bucket": "ofreal-rr-dry-0001-src", "PublicAccessBlockConfiguration": {"BlockPublicAcls": true, "BlockPublicPolicy": true, "IgnorePublicAcls": true, "RestrictPublicBuckets": true}}
+boto3 s3.CreateBucket {"Bucket": "ofreal-rr-dry-0001-staging", "CreateBucketConfiguration": {"LocationConstraint": "us-west-2"}}
+boto3 s3.PutBucketTagging {"Bucket": "ofreal-rr-dry-0001-staging", "Tagging": {"TagSet": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}}
+boto3 s3.PutBucketVersioning {"Bucket": "ofreal-rr-dry-0001-staging", "VersioningConfiguration": {"Status": "Enabled"}}
+boto3 s3.PutPublicAccessBlock {"Bucket": "ofreal-rr-dry-0001-staging", "PublicAccessBlockConfiguration": {"BlockPublicAcls": true, "BlockPublicPolicy": true, "IgnorePublicAcls": true, "RestrictPublicBuckets": true}}
+boto3 s3.CreateBucket {"Bucket": "ofreal-rr-dry-0001-reports", "CreateBucketConfiguration": {"LocationConstraint": "us-west-2"}}
+boto3 s3.PutBucketTagging {"Bucket": "ofreal-rr-dry-0001-reports", "Tagging": {"TagSet": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}}
+boto3 s3.PutBucketVersioning {"Bucket": "ofreal-rr-dry-0001-reports", "VersioningConfiguration": {"Status": "Enabled"}}
+boto3 s3.PutPublicAccessBlock {"Bucket": "ofreal-rr-dry-0001-reports", "PublicAccessBlockConfiguration": {"BlockPublicAcls": true, "BlockPublicPolicy": true, "IgnorePublicAcls": true, "RestrictPublicBuckets": true}}
+boto3 s3.CreateBucket {"Bucket": "ofreal-rr-dry-0001-kms", "CreateBucketConfiguration": {"LocationConstraint": "us-west-2"}}
+boto3 s3.PutBucketTagging {"Bucket": "ofreal-rr-dry-0001-kms", "Tagging": {"TagSet": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}}
+boto3 s3.PutBucketVersioning {"Bucket": "ofreal-rr-dry-0001-kms", "VersioningConfiguration": {"Status": "Enabled"}}
+boto3 s3.PutPublicAccessBlock {"Bucket": "ofreal-rr-dry-0001-kms", "PublicAccessBlockConfiguration": {"BlockPublicAcls": true, "BlockPublicPolicy": true, "IgnorePublicAcls": true, "RestrictPublicBuckets": true}}
+boto3 s3.PutBucketEncryption {"Bucket": "ofreal-rr-dry-0001-kms", "ServerSideEncryptionConfiguration": {"Rules": [{"ApplyServerSideEncryptionByDefault": {"SSEAlgorithm": "aws:kms"}}]}}
+boto3 sqs.CreateQueue {"QueueName": "ofreal-rr-dry-0001-events", "tags": {"omnifile-expires": "2026-11-03T12:00:00Z", "omnifile-harness": "tests-real", "omnifile-run": "rr-dry-0001"}}
+boto3 sqs.GetQueueAttributes {"AttributeNames": ["QueueArn"], "QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events"}
+boto3 events.PutRule {"EventPattern": "{\"source\": [\"aws.s3\"], \"detail\": {\"bucket\": {\"name\": [\"ofreal-rr-dry-0001-src\"]}}}", "Name": "ofreal-rr-dry-0001-s3", "State": "ENABLED", "Tags": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}
+boto3 sqs.SetQueueAttributes {"Attributes": {"Policy": "<n chars sha256:<h>>"}, "QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events"}
+boto3 events.PutTargets {"Rule": "ofreal-rr-dry-0001-s3", "Targets": [{"Arn": "arn:aws:sqs:us-west-2:123456789012:ofreal-rr-dry-0001-events", "Id": "queue"}]}
+boto3 s3.PutBucketNotificationConfiguration {"Bucket": "ofreal-rr-dry-0001-src", "NotificationConfiguration": {"EventBridgeConfiguration": {}}}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "canary/ready-000", "Tagging": "omnifile-run=rr-dry-0001"}
+boto3 sqs.ReceiveMessage {"MaxNumberOfMessages": 10, "QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "WaitTimeSeconds": 0}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "seed/standard/plain-00.segy", "StorageClass": "STANDARD", "Tagging": "omnifile-run=rr-dry-0001"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "seed/standard/with space-01.segy", "StorageClass": "STANDARD", "Tagging": "omnifile-run=rr-dry-0001"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "seed/standard/plus+sign-02.segy", "StorageClass": "STANDARD", "Tagging": "omnifile-run=rr-dry-0001"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "seed/standard/per%cent-03.segy", "StorageClass": "STANDARD", "Tagging": "omnifile-run=rr-dry-0001"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "seed/glacier/plain-00.segy", "StorageClass": "GLACIER", "Tagging": "omnifile-run=rr-dry-0001"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "seed/glacier/with space-01.segy", "StorageClass": "GLACIER", "Tagging": "omnifile-run=rr-dry-0001"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "seed/glacier/plus+sign-02.segy", "StorageClass": "GLACIER", "Tagging": "omnifile-run=rr-dry-0001"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "seed/glacier/per%cent-03.segy", "StorageClass": "GLACIER", "Tagging": "omnifile-run=rr-dry-0001"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "seed/glacier/n\u00f6rd-\u00fcn\u00efcode-04.segy", "StorageClass": "GLACIER", "Tagging": "omnifile-run=rr-dry-0001"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "seed/glacier/plain-05.segy", "StorageClass": "GLACIER", "Tagging": "omnifile-run=rr-dry-0001"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "seed/deep_archive/plain-00.segy", "StorageClass": "DEEP_ARCHIVE", "Tagging": "omnifile-run=rr-dry-0001"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "seed/deep_archive/with space-01.segy", "StorageClass": "DEEP_ARCHIVE", "Tagging": "omnifile-run=rr-dry-0001"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "seed/intelligent_tiering/plain-00.segy", "StorageClass": "INTELLIGENT_TIERING", "Tagging": "omnifile-run=rr-dry-0001"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "seed/intelligent_tiering/with space-01.segy", "StorageClass": "INTELLIGENT_TIERING", "Tagging": "omnifile-run=rr-dry-0001"}
+boto3 ec2.CreateVpc {"CidrBlock": "10.61.0.0/16", "TagSpecifications": [{"ResourceType": "vpc", "Tags": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}]}
+boto3 ec2.ModifyVpcAttribute {"EnableDnsSupport": {"Value": true}, "VpcId": "vpc-<id>"}
+boto3 ec2.ModifyVpcAttribute {"EnableDnsHostnames": {"Value": true}, "VpcId": "vpc-<id>"}
+boto3 ec2.DescribeAvailabilityZones {}
+boto3 ec2.CreateSubnet {"AvailabilityZone": "us-west-2a", "CidrBlock": "10.61.1.0/24", "TagSpecifications": [{"ResourceType": "subnet", "Tags": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}], "VpcId": "vpc-<id>"}
+boto3 ec2.CreateSecurityGroup {"Description": "OmniFile real-AWS probe: HTTPS inside the VPC", "GroupName": "ofreal-rr-dry-0001-probe-sg", "TagSpecifications": [{"ResourceType": "security-group", "Tags": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}], "VpcId": "vpc-<id>"}
+boto3 ec2.AuthorizeSecurityGroupIngress {"GroupId": "sg-<id>", "IpPermissions": [{"FromPort": 443, "IpProtocol": "tcp", "IpRanges": [{"CidrIp": "10.61.0.0/16"}], "ToPort": 443}]}
+boto3 ec2.CreateVpcEndpoint {"PrivateDnsEnabled": false, "SecurityGroupIds": ["sg-<id>"], "ServiceName": "com.amazonaws.us-west-2.s3", "SubnetIds": ["subnet-<id>"], "TagSpecifications": [{"ResourceType": "vpc-endpoint", "Tags": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}], "VpcEndpointType": "Interface", "VpcId": "vpc-<id>"}
+boto3 ec2.CreateVpcEndpoint {"PrivateDnsEnabled": true, "SecurityGroupIds": ["sg-<id>"], "ServiceName": "com.amazonaws.us-west-2.sqs", "SubnetIds": ["subnet-<id>"], "TagSpecifications": [{"ResourceType": "vpc-endpoint", "Tags": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}], "VpcEndpointType": "Interface", "VpcId": "vpc-<id>"}
+boto3 ec2.CreateVpcEndpoint {"PrivateDnsEnabled": true, "SecurityGroupIds": ["sg-<id>"], "ServiceName": "com.amazonaws.us-west-2.s3-control", "SubnetIds": ["subnet-<id>"], "TagSpecifications": [{"ResourceType": "vpc-endpoint", "Tags": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}], "VpcEndpointType": "Interface", "VpcId": "vpc-<id>"}
+boto3 ec2.CreateVpcEndpoint {"PrivateDnsEnabled": true, "SecurityGroupIds": ["sg-<id>"], "ServiceName": "com.amazonaws.us-west-2.sts", "SubnetIds": ["subnet-<id>"], "TagSpecifications": [{"ResourceType": "vpc-endpoint", "Tags": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}], "VpcEndpointType": "Interface", "VpcId": "vpc-<id>"}
+boto3 ec2.CreateVpcEndpoint {"PrivateDnsEnabled": true, "SecurityGroupIds": ["sg-<id>"], "ServiceName": "com.amazonaws.us-west-2.rolesanywhere", "SubnetIds": ["subnet-<id>"], "TagSpecifications": [{"ResourceType": "vpc-endpoint", "Tags": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}], "VpcEndpointType": "Interface", "VpcId": "vpc-<id>"}
+boto3 ec2.CreateVpcEndpoint {"PrivateDnsEnabled": true, "SecurityGroupIds": ["sg-<id>"], "ServiceName": "com.amazonaws.us-west-2.ssm", "SubnetIds": ["subnet-<id>"], "TagSpecifications": [{"ResourceType": "vpc-endpoint", "Tags": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}], "VpcEndpointType": "Interface", "VpcId": "vpc-<id>"}
+boto3 ec2.CreateVpcEndpoint {"PrivateDnsEnabled": true, "SecurityGroupIds": ["sg-<id>"], "ServiceName": "com.amazonaws.us-west-2.ssmmessages", "SubnetIds": ["subnet-<id>"], "TagSpecifications": [{"ResourceType": "vpc-endpoint", "Tags": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}], "VpcEndpointType": "Interface", "VpcId": "vpc-<id>"}
+boto3 ec2.CreateVpcEndpoint {"PrivateDnsEnabled": true, "SecurityGroupIds": ["sg-<id>"], "ServiceName": "com.amazonaws.us-west-2.ec2messages", "SubnetIds": ["subnet-<id>"], "TagSpecifications": [{"ResourceType": "vpc-endpoint", "Tags": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}], "VpcEndpointType": "Interface", "VpcId": "vpc-<id>"}
+boto3 rolesanywhere.CreateTrustAnchor {"enabled": true, "name": "ofreal-rr-dry-0001-edge-ca", "source": {"sourceData": {"x509CertificateData": "<volatile>"}, "sourceType": "CERTIFICATE_BUNDLE"}, "tags": [{"key": "omnifile-run", "value": "rr-dry-0001"}, {"key": "omnifile-expires", "value": "2026-11-03T12:00:00Z"}, {"key": "omnifile-harness", "value": "tests-real"}]}
+boto3 iam.CreateRole {"AssumeRolePolicyDocument": {"Statement": [{"Action": ["sts:AssumeRole", "sts:TagSession", "sts:SetSourceIdentity"], "Condition": {"ArnEquals": {"aws:SourceArn": "arn:aws:rolesanywhere:us-west-2:123456789012:trust-anchor/00000000-0000-0000-0000-000000000001"}, "StringEquals": {"aws:PrincipalTag/x509Subject/CN": ["omnifile-edge-r04a37bfa"], "aws:PrincipalTag/x509Subject/OU": "omnifile-roles-anywhere"}}, "Effect": "Allow", "Principal": {"Service": "rolesanywhere.amazonaws.com"}, "Sid": "OmniFileEdgesThroughTheEdgeCaTrustAnchor"}], "Version": "2012-10-17"}, "MaxSessionDuration": 3600, "Path": "/omnifile-real/rr-dry-0001/", "PermissionsBoundary": "arn:aws:iam::123456789012:policy/omnifile-real-base/omnifile-real-edge-boundary", "RoleName": "ofreal-rr-dry-0001-edge-s3-read", "Tags": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}
+boto3 iam.PutRolePolicy {"PolicyDocument": {"Statement": [{"Action": ["s3:GetObject", "s3:GetObjectVersion"], "Condition": {"StringEquals": {"aws:SourceVpce": "vpce-<id>"}}, "Effect": "Allow", "Resource": ["arn:aws:s3:::ofreal-rr-dry-0001-src/seed/*"], "Sid": "ReadTheSourcePrefixesThroughTheInterfaceEndpoint"}, {"Action": "s3:*", "Condition": {"StringNotEquals": {"aws:SourceVpce": "vpce-<id>"}}, "Effect": "Deny", "Resource": "*", "Sid": "NothingOffThePrivateNetwork"}, {"Action": ["s3:PutObject", "s3:PutObjectAcl", "s3:PutObjectVersionAcl", "s3:PutObjectTagging", "s3:PutObjectVersionTagging", "s3:PutObjectRetention", "s3:PutObjectLegalHold", "s3:DeleteObject", "s3:DeleteObjectVersion", "s3:DeleteObjectTagging", "s3:DeleteObjectVersionTagging", "s3:RestoreObject", "s3:AbortMultipartUpload", "s3:BypassGovernanceRetention", "s3:PutBucketAcl", "s3:PutBucketPolicy", "s3:DeleteBucketPolicy"], "Effect": "Deny", "Resource": "*", "Sid": "NeverWriteDeleteTagRestoreOrChangeAcls"}], "Version": "2012-10-17"}, "PolicyName": "edge-s3-read", "RoleName": "ofreal-rr-dry-0001-edge-s3-read"}
+boto3 rolesanywhere.CreateProfile {"durationSeconds": 3600, "enabled": true, "name": "ofreal-rr-dry-0001-edges", "roleArns": ["arn:aws:iam::123456789012:role/omnifile-real/rr-dry-0001/ofreal-rr-dry-0001-edge-s3-read"], "tags": [{"key": "omnifile-run", "value": "rr-dry-0001"}, {"key": "omnifile-expires", "value": "2026-11-03T12:00:00Z"}, {"key": "omnifile-harness", "value": "tests-real"}]}
+boto3 ssm.GetParameter {"Name": "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"}
+boto3 ec2.RunInstances {"IamInstanceProfile": {"Arn": "arn:aws:iam::123456789012:instance-profile/omnifile-real-base/omnifile-real-probe"}, "ImageId": "ami-<id>", "InstanceType": "t3.micro", "MaxCount": 1, "MetadataOptions": {"HttpTokens": "required"}, "MinCount": 1, "SecurityGroupIds": ["sg-<id>"], "SubnetId": "subnet-<id>", "TagSpecifications": [{"ResourceType": "instance", "Tags": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}, {"ResourceType": "volume", "Tags": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}], "UserData": "#!/bin/bash\nfor i in $(seq 40); do\n  aws s3 cp s3://ofreal-rr-dry-0001-reports/tools/aws_signing_helper /usr/local/bin/aws_signing_helper --region us-west-2 --endpoint-url https://bucket.vpce-<id>.com.amazonaws.us-west-2.s3 >>/var/log/ofreal-helper.log 2>&1 && chmod 755 /usr/local/bin/aws_signing_helper && break\n  sleep 15\ndone\n"}
+boto3 sts.GetCallerIdentity {}
+boto3 iam.ListRoles {}
+boto3 rolesanywhere.ListTrustAnchors {}
+boto3 rolesanywhere.ListProfiles {}
+boto3 s3.ListBuckets {}
+aws rolesanywhere create-trust-anchor --name omnifile-edge-ca-rr-dry-0001 --enabled --source sourceType=CERTIFICATE_BUNDLE,sourceData={x509CertificateData=<CERTIFICATE PEM>}
+aws s3api create-bucket --bucket ofreal-rr-dry-0001-guide --create-bucket-configuration LocationConstraint=us-west-2
+aws rolesanywhere create-trust-anchor --name someone-elses-anchor --enabled --source sourceType=CERTIFICATE_BUNDLE,sourceData={x509CertificateData=<CERTIFICATE PEM>}
+boto3 iam.ListRoles {}
+boto3 rolesanywhere.ListTrustAnchors {}
+boto3 rolesanywhere.ListProfiles {}
+boto3 s3.ListBuckets {}
+boto3 rolesanywhere.TagResource {"resourceArn": "arn:aws:rolesanywhere:us-west-2:123456789012:trust-anchor/00000000-0000-0000-0000-000000000003", "tags": [{"key": "omnifile-run", "value": "rr-dry-0001"}, {"key": "omnifile-expires", "value": "2026-11-03T12:00:00Z"}, {"key": "omnifile-harness", "value": "tests-real"}]}
+boto3 s3.PutBucketTagging {"Bucket": "ofreal-rr-dry-0001-guide", "Tagging": {"TagSet": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}}
+boto3 sts.GetCallerIdentity {}
+boto3 sts.GetCallerIdentity {}
+boto3 s3.CreateMultipartUpload {"Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "ChecksumType": "FULL_OBJECT", "Key": "checks/rw01-multipart.bin"}
+boto3 s3.UploadPart {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "checks/rw01-multipart.bin", "PartNumber": 1, "UploadId": "<volatile>"}
+boto3 s3.UploadPart {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "checks/rw01-multipart.bin", "PartNumber": 2, "UploadId": "<volatile>"}
+boto3 s3.CompleteMultipartUpload {"Bucket": "ofreal-rr-dry-0001-src", "ChecksumCRC64NVME": "om2Q1oWMgdM=", "ChecksumType": "FULL_OBJECT", "Key": "checks/rw01-multipart.bin", "MultipartUpload": {"Parts": [{"ChecksumCRC64NVME": "teGZXc67Nws=", "ETag": "<v>", "PartNumber": 1}, {"ChecksumCRC64NVME": "yeCyzLRFR5g=", "ETag": "<v>", "PartNumber": 2}]}, "UploadId": "<volatile>"}
+boto3 s3.HeadObject {"Bucket": "ofreal-rr-dry-0001-src", "ChecksumMode": "ENABLED", "Key": "checks/rw01-multipart.bin"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "checks/rw02-part.bin"}
+boto3 s3.CreateMultipartUpload {"Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "ChecksumType": "FULL_OBJECT", "Key": "checks/rw02-big.bin"}
+boto3 s3.UploadPartCopy {"Bucket": "ofreal-rr-dry-0001-src", "CopySource": "ofreal-rr-dry-0001-src/checks/rw02-part.bin", "Key": "checks/rw02-big.bin", "PartNumber": 1, "UploadId": "<volatile>"}
+boto3 s3.UploadPartCopy {"Bucket": "ofreal-rr-dry-0001-src", "CopySource": "ofreal-rr-dry-0001-src/checks/rw02-part.bin", "Key": "checks/rw02-big.bin", "PartNumber": 2, "UploadId": "<volatile>"}
+boto3 s3.CompleteMultipartUpload {"Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw02-big.bin", "MultipartUpload": {"Parts": [{"ETag": "<v>", "PartNumber": 1}, {"ETag": "<v>", "PartNumber": 2}]}, "UploadId": "<volatile>"}
+boto3 s3.HeadObject {"Bucket": "ofreal-rr-dry-0001-src", "ChecksumMode": "ENABLED", "Key": "checks/rw02-big.bin"}
+boto3 s3.CopyObject {"Bucket": "ofreal-rr-dry-0001-staging", "ChecksumAlgorithm": "CRC64NVME", "CopySource": "ofreal-rr-dry-0001-src/seed/standard/plain-00.segy", "Key": "checks/rw03-copy"}
+boto3 s3.HeadObject {"Bucket": "ofreal-rr-dry-0001-src", "ChecksumMode": "ENABLED", "Key": "seed/standard/plain-00.segy"}
+boto3 s3.HeadObject {"Bucket": "ofreal-rr-dry-0001-staging", "ChecksumMode": "ENABLED", "Key": "checks/rw03-copy"}
+boto3 s3.RestoreObject {"Bucket": "ofreal-rr-dry-0001-src", "Key": "seed/glacier/plain-00.segy", "RestoreRequest": {"Days": 1, "GlacierJobParameters": {"Tier": "Standard"}}}
+boto3 ssm.DescribeInstanceInformation {"Filters": [{"Key": "InstanceIds", "Values": ["i-<id>"]}]}
+boto3 ssm.SendCommand {"DocumentName": "AWS-RunShellScript", "InstanceIds": ["i-<id>"], "Parameters": {"commands": ["cloud-init status --wait >/dev/null 2>&1 || true", "<n chars sha256:<h>>", "<n chars sha256:<h>>"]}, "TimeoutSeconds": 1800}
+boto3 ssm.GetCommandInvocation {"CommandId": "00000000-0000-0000-0000-000000000005", "InstanceId": "i-<id>"}
+boto3 s3.RestoreObject {"Bucket": "ofreal-rr-dry-0001-src", "Key": "seed/glacier/with space-01.segy", "RestoreRequest": {"Days": 1, "GlacierJobParameters": {"Tier": "Standard"}}}
+boto3 s3.RestoreObject {"Bucket": "ofreal-rr-dry-0001-src", "Key": "seed/glacier/with space-01.segy", "RestoreRequest": {"Days": 1, "GlacierJobParameters": {"Tier": "Standard"}}}
+boto3 s3.HeadObject {"Bucket": "ofreal-rr-dry-0001-src", "Key": "seed/glacier/plain-00.segy"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw08-s3"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-kms", "Key": "checks/rw08-kms"}
+boto3 sqs.ReceiveMessage {"MaxNumberOfMessages": 10, "QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "WaitTimeSeconds": 0}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.ReceiveMessage {"MaxNumberOfMessages": 10, "QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "WaitTimeSeconds": 0}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.ReceiveMessage {"MaxNumberOfMessages": 10, "QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "WaitTimeSeconds": 0}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.ReceiveMessage {"MaxNumberOfMessages": 10, "QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "WaitTimeSeconds": 0}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.ReceiveMessage {"MaxNumberOfMessages": 10, "QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "WaitTimeSeconds": 0}
+boto3 sqs.DeleteMessage {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "ReceiptHandle": "<volatile>"}
+boto3 sqs.ReceiveMessage {"MaxNumberOfMessages": 10, "QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "WaitTimeSeconds": 0}
+boto3 s3.DeleteObject {"Bucket": "ofreal-rr-dry-0001-src", "Key": "seed/standard/per%cent-03.segy"}
+boto3 sqs.ReceiveMessage {"MaxNumberOfMessages": 10, "QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events", "WaitTimeSeconds": 0}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-000"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-001"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-002"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-003"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-004"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-005"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-006"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-007"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-008"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-009"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-010"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-011"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-012"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-013"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-014"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-015"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-016"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-017"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-018"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "Key": "checks/rw12-019"}
+boto3 ssm.SendCommand {"DocumentName": "AWS-RunShellScript", "InstanceIds": ["i-<id>"], "Parameters": {"commands": ["cloud-init status --wait >/dev/null 2>&1 || true", "<n chars sha256:<h>>", "<n chars sha256:<h>>"]}, "TimeoutSeconds": 1800}
+boto3 ssm.GetCommandInvocation {"CommandId": "00000000-0000-0000-0000-000000000006", "InstanceId": "i-<id>"}
+boto3 s3.HeadObject {"Bucket": "ofreal-rr-dry-0001-src", "ChecksumMode": "ENABLED", "Key": "seed/deep_archive/plain-00.segy"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-reports", "Key": "manifests/restore-nov.csv"}
+boto3 s3control.CreateJob {"AccountId": "123456789012", "ClientRequestToken": "rr-dry-0001-2-S3InitiateRestoreObject", "ConfirmationRequired": false, "Manifest": {"Location": {"ETag": "<v>", "ObjectArn": "arn:aws:s3:::ofreal-rr-dry-0001-reports/manifests/restore-nov.csv"}, "Spec": {"Fields": ["Bucket", "Key"], "Format": "S3BatchOperations_CSV_20180820"}}, "Operation": {"S3InitiateRestoreObject": {"ExpirationInDays": 1, "GlacierJobTier": "STANDARD"}}, "Priority": 10, "Report": {"Bucket": "arn:aws:s3:::ofreal-rr-dry-0001-reports", "Enabled": true, "ExpectedBucketOwner": "123456789012", "Format": "Report_CSV_20180820", "Prefix": "reports", "ReportScope": "AllTasks"}, "RoleArn": "arn:aws:iam::123456789012:role/omnifile-real-base/omnifile-real-batch-ops", "Tags": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}
+boto3 s3control.DescribeJob {"AccountId": "123456789012", "JobId": "00000000-0000-0000-0000-000000000007"}
+boto3 s3.HeadObject {"Bucket": "ofreal-rr-dry-0001-src", "Key": "seed/glacier/plus+sign-02.segy"}
+boto3 s3.HeadObject {"Bucket": "ofreal-rr-dry-0001-src", "Key": "seed/glacier/per%cent-03.segy"}
+boto3 s3.HeadObject {"Bucket": "ofreal-rr-dry-0001-src", "Key": "seed/glacier/n\u00f6rd-\u00fcn\u00efcode-04.segy"}
+boto3 s3.HeadObject {"Bucket": "ofreal-rr-dry-0001-src", "Key": "seed/glacier/plain-05.segy"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-reports", "Key": "manifests/restore-v.csv"}
+boto3 s3control.CreateJob {"AccountId": "123456789012", "ClientRequestToken": "rr-dry-0001-3-S3InitiateRestoreObject", "ConfirmationRequired": false, "Manifest": {"Location": {"ETag": "<v>", "ObjectArn": "arn:aws:s3:::ofreal-rr-dry-0001-reports/manifests/restore-v.csv"}, "Spec": {"Fields": ["Bucket", "Key", "VersionId"], "Format": "S3BatchOperations_CSV_20180820"}}, "Operation": {"S3InitiateRestoreObject": {"ExpirationInDays": 1, "GlacierJobTier": "STANDARD"}}, "Priority": 10, "Report": {"Bucket": "arn:aws:s3:::ofreal-rr-dry-0001-reports", "Enabled": true, "ExpectedBucketOwner": "123456789012", "Format": "Report_CSV_20180820", "Prefix": "reports", "ReportScope": "AllTasks"}, "RoleArn": "arn:aws:iam::123456789012:role/omnifile-real-base/omnifile-real-batch-ops", "Tags": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}
+boto3 s3control.DescribeJob {"AccountId": "123456789012", "JobId": "00000000-0000-0000-0000-000000000008"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "checks/rw19/with space-00.bin"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "checks/rw19/plus+sign-01.bin"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "checks/rw19/per%cent-02.bin"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "checks/rw19/looks%2Bencoded-03.bin"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "checks/rw19/com,ma-04.bin"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-src", "ChecksumAlgorithm": "CRC64NVME", "Key": "checks/rw19/n\u00f6rd-\u00fcn\u00ef-05.bin"}
+boto3 s3.PutObject {"Body": "<stream>", "Bucket": "ofreal-rr-dry-0001-reports", "Key": "manifests/checksum.csv"}
+boto3 s3control.CreateJob {"AccountId": "123456789012", "ClientRequestToken": "rr-dry-0001-2-S3ComputeObjectChecksum", "ConfirmationRequired": false, "Manifest": {"Location": {"ETag": "<v>", "ObjectArn": "arn:aws:s3:::ofreal-rr-dry-0001-reports/manifests/checksum.csv"}, "Spec": {"Fields": ["Bucket", "Key"], "Format": "S3BatchOperations_CSV_20180820"}}, "Operation": {"S3ComputeObjectChecksum": {"ChecksumAlgorithm": "CRC64NVME", "ChecksumType": "FULL_OBJECT"}}, "Priority": 10, "Report": {"Bucket": "arn:aws:s3:::ofreal-rr-dry-0001-reports", "Enabled": true, "ExpectedBucketOwner": "123456789012", "Format": "Report_CSV_20180820", "Prefix": "reports", "ReportScope": "AllTasks"}, "RoleArn": "arn:aws:iam::123456789012:role/omnifile-real-base/omnifile-real-batch-ops", "Tags": [{"Key": "omnifile-run", "Value": "rr-dry-0001"}, {"Key": "omnifile-expires", "Value": "2026-11-03T12:00:00Z"}, {"Key": "omnifile-harness", "Value": "tests-real"}]}
+boto3 s3control.DescribeJob {"AccountId": "123456789012", "JobId": "00000000-0000-0000-0000-000000000009"}
+boto3 s3.GetObject {"Bucket": "ofreal-rr-dry-0001-reports", "Key": "reports/job-00000000-0000-0000-0000-000000000009/manifest.json"}
+boto3 s3.GetObject {"Bucket": "ofreal-rr-dry-0001-reports", "Key": "reports/job-00000000-0000-0000-0000-000000000009/results/00000000-0000-0000-0000-000000000009-1.csv"}
+boto3 s3.HeadObject {"Bucket": "ofreal-rr-dry-0001-src", "ChecksumMode": "ENABLED", "Key": "seed/standard/plain-00.segy"}
+boto3 s3.HeadObject {"Bucket": "ofreal-rr-dry-0001-src", "ChecksumMode": "ENABLED", "Key": "checks/rw19/with space-00.bin"}
+boto3 s3.HeadObject {"Bucket": "ofreal-rr-dry-0001-src", "ChecksumMode": "ENABLED", "Key": "checks/rw19/plus+sign-01.bin"}
+boto3 s3.HeadObject {"Bucket": "ofreal-rr-dry-0001-src", "ChecksumMode": "ENABLED", "Key": "checks/rw19/per%cent-02.bin"}
+boto3 s3.HeadObject {"Bucket": "ofreal-rr-dry-0001-src", "ChecksumMode": "ENABLED", "Key": "checks/rw19/looks%2Bencoded-03.bin"}
+boto3 s3.HeadObject {"Bucket": "ofreal-rr-dry-0001-src", "ChecksumMode": "ENABLED", "Key": "checks/rw19/com,ma-04.bin"}
+boto3 s3.HeadObject {"Bucket": "ofreal-rr-dry-0001-src", "ChecksumMode": "ENABLED", "Key": "checks/rw19/n\u00f6rd-\u00fcn\u00ef-05.bin"}
+boto3 ssm.SendCommand {"DocumentName": "AWS-RunShellScript", "InstanceIds": ["i-<id>"], "Parameters": {"commands": ["cloud-init status --wait >/dev/null 2>&1 || true", "<n chars sha256:<h>>", "<n chars sha256:<h>>"]}, "TimeoutSeconds": 1800}
+boto3 ssm.GetCommandInvocation {"CommandId": "00000000-0000-0000-0000-00000000000a", "InstanceId": "i-<id>"}
+boto3 rolesanywhere.ListTrustAnchors {}
+boto3 ssm.SendCommand {"DocumentName": "AWS-RunShellScript", "InstanceIds": ["i-<id>"], "Parameters": {"commands": ["cloud-init status --wait >/dev/null 2>&1 || true", "<n chars sha256:<h>>", "<n chars sha256:<h>>"]}, "TimeoutSeconds": 1800}
+boto3 ssm.GetCommandInvocation {"CommandId": "00000000-0000-0000-0000-00000000000b", "InstanceId": "i-<id>"}
+boto3 rolesanywhere.ImportCrl {"crlData": "<volatile>", "enabled": true, "name": "ofreal-rr-dry-0001-edge-ca-crl", "tags": [{"key": "omnifile-trust-anchor", "value": "00000000-0000-0000-0000-000000000001"}, {"key": "omnifile-run", "value": "rr-dry-0001"}, {"key": "omnifile-expires", "value": "2026-11-03T12:00:00Z"}, {"key": "omnifile-harness", "value": "tests-real"}], "trustAnchorArn": "arn:aws:rolesanywhere:us-west-2:123456789012:trust-anchor/00000000-0000-0000-0000-000000000001"}
+boto3 rolesanywhere.UpdateCrl {"crlData": "<volatile>", "crlId": "00000000-0000-0000-0000-00000000000c"}
+boto3 rolesanywhere.ListCrls {}
+boto3 ssm.SendCommand {"DocumentName": "AWS-RunShellScript", "InstanceIds": ["i-<id>"], "Parameters": {"commands": ["cloud-init status --wait >/dev/null 2>&1 || true", "<n chars sha256:<h>>", "<n chars sha256:<h>>"]}, "TimeoutSeconds": 1800}
+boto3 ssm.GetCommandInvocation {"CommandId": "00000000-0000-0000-0000-00000000000d", "InstanceId": "i-<id>"}
+boto3 rolesanywhere.UpdateCrl {"crlData": "<volatile>", "crlId": "00000000-0000-0000-0000-00000000000c"}
+boto3 rolesanywhere.UpdateCrl {"crlData": "<volatile>", "crlId": "00000000-0000-0000-0000-00000000000c"}
+boto3 ssm.SendCommand {"DocumentName": "AWS-RunShellScript", "InstanceIds": ["i-<id>"], "Parameters": {"commands": ["cloud-init status --wait >/dev/null 2>&1 || true", "<n chars sha256:<h>>", "<n chars sha256:<h>>"]}, "TimeoutSeconds": 1800}
+boto3 ssm.GetCommandInvocation {"CommandId": "00000000-0000-0000-0000-00000000000e", "InstanceId": "i-<id>"}
+boto3 ssm.SendCommand {"DocumentName": "AWS-RunShellScript", "InstanceIds": ["i-<id>"], "Parameters": {"commands": ["cloud-init status --wait >/dev/null 2>&1 || true", "<n chars sha256:<h>>", "<n chars sha256:<h>>"]}, "TimeoutSeconds": 1800}
+boto3 ssm.GetCommandInvocation {"CommandId": "00000000-0000-0000-0000-00000000000f", "InstanceId": "i-<id>"}
+boto3 sts.GetCallerIdentity {}
+boto3 s3control.ListJobs {"AccountId": "123456789012", "JobStatuses": ["Active", "New", "Preparing", "Ready", "Suspended"]}
+boto3 ec2.DescribeInstances {"Filters": [{"Name": "tag:omnifile-run", "Values": ["rr-dry-0001"]}, {"Name": "instance-state-name", "Values": ["pending", "running", "stopping", "stopped"]}]}
+boto3 ec2.TerminateInstances {"InstanceIds": ["i-<id>"]}
+boto3 ec2.DescribeInstances {"InstanceIds": ["i-<id>"]}
+boto3 ec2.DescribeVpcEndpoints {"Filters": [{"Name": "tag:omnifile-run", "Values": ["rr-dry-0001"]}]}
+boto3 ec2.DeleteVpcEndpoints {"VpcEndpointIds": ["vpce-<id>", "vpce-<id>", "vpce-<id>", "vpce-<id>", "vpce-<id>", "vpce-<id>", "vpce-<id>", "vpce-<id>"]}
+boto3 ec2.DescribeVpcEndpoints {"Filters": [{"Name": "tag:omnifile-run", "Values": ["rr-dry-0001"]}]}
+boto3 ec2.DescribeSubnets {"Filters": [{"Name": "tag:omnifile-run", "Values": ["rr-dry-0001"]}]}
+boto3 ec2.DeleteSubnet {"SubnetId": "subnet-<id>"}
+boto3 ec2.DescribeSecurityGroups {"Filters": [{"Name": "tag:omnifile-run", "Values": ["rr-dry-0001"]}]}
+boto3 ec2.DeleteSecurityGroup {"GroupId": "sg-<id>"}
+boto3 ec2.DescribeVpcs {"Filters": [{"Name": "tag:omnifile-run", "Values": ["rr-dry-0001"]}]}
+boto3 ec2.DeleteVpc {"VpcId": "vpc-<id>"}
+boto3 events.ListTargetsByRule {"Rule": "ofreal-rr-dry-0001-s3"}
+boto3 events.RemoveTargets {"Ids": ["queue"], "Rule": "ofreal-rr-dry-0001-s3"}
+boto3 events.DeleteRule {"Name": "ofreal-rr-dry-0001-s3"}
+boto3 sqs.ListQueues {"QueueNamePrefix": "ofreal-rr-dry-0001-events"}
+boto3 sqs.ListQueueTags {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events"}
+boto3 sqs.DeleteQueue {"QueueUrl": "$MOTO/123456789012/ofreal-rr-dry-0001-events"}
+boto3 s3.ListBuckets {}
+boto3 s3.GetBucketTagging {"Bucket": "ofreal-rr-dry-0001-src"}
+boto3 s3.ListObjectVersions {"Bucket": "ofreal-rr-dry-0001-src", "EncodingType": "url"}
+boto3 s3.DeleteObjects {"Bucket": "ofreal-rr-dry-0001-src", "Delete": {"Objects": [{"Key": "canary/ready-000", "VersionId": "<v>"}, {"Key": "checks/rw01-multipart.bin", "VersionId": "<v>"}, {"Key": "checks/rw02-big.bin", "VersionId": "<v>"}, {"Key": "checks/rw02-part.bin", "VersionId": "<v>"}, {"Key": "checks/rw08-s3", "VersionId": "<v>"}, {"Key": "checks/rw12-000", "VersionId": "<v>"}, {"Key": "checks/rw12-001", "VersionId": "<v>"}, {"Key": "checks/rw12-002", "VersionId": "<v>"}, {"Key": "checks/rw12-003", "VersionId": "<v>"}, {"Key": "checks/rw12-004", "VersionId": "<v>"}, {"Key": "checks/rw12-005", "VersionId": "<v>"}, {"Key": "checks/rw12-006", "VersionId": "<v>"}, {"Key": "checks/rw12-007", "VersionId": "<v>"}, {"Key": "checks/rw12-008", "VersionId": "<v>"}, {"Key": "checks/rw12-009", "VersionId": "<v>"}, {"Key": "checks/rw12-010", "VersionId": "<v>"}, {"Key": "checks/rw12-011", "VersionId": "<v>"}, {"Key": "checks/rw12-012", "VersionId": "<v>"}, {"Key": "checks/rw12-013", "VersionId": "<v>"}, {"Key": "checks/rw12-014", "VersionId": "<v>"}, {"Key": "checks/rw12-015", "VersionId": "<v>"}, {"Key": "checks/rw12-016", "VersionId": "<v>"}, {"Key": "checks/rw12-017", "VersionId": "<v>"}, {"Key": "checks/rw12-018", "VersionId": "<v>"}, {"Key": "checks/rw12-019", "VersionId": "<v>"}, {"Key": "checks/rw19/com,ma-04.bin", "VersionId": "<v>"}, {"Key": "checks/rw19/looks%2Bencoded-03.bin", "VersionId": "<v>"}, {"Key": "checks/rw19/n\u00f6rd-\u00fcn\u00ef-05.bin", "VersionId": "<v>"}, {"Key": "checks/rw19/per%cent-02.bin", "VersionId": "<v>"}, {"Key": "checks/rw19/plus+sign-01.bin", "VersionId": "<v>"}, {"Key": "checks/rw19/with space-00.bin", "VersionId": "<v>"}, {"Key": "seed/deep_archive/plain-00.segy", "VersionId": "<v>"}, {"Key": "seed/deep_archive/with space-01.segy", "VersionId": "<v>"}, {"Key": "seed/glacier/n\u00f6rd-\u00fcn\u00efcode-04.segy", "VersionId": "<v>"}, {"Key": "seed/glacier/per%cent-03.segy", "VersionId": "<v>"}, {"Key": "seed/glacier/plain-00.segy", "VersionId": "<v>"}, {"Key": "seed/glacier/plain-05.segy", "VersionId": "<v>"}, {"Key": "seed/glacier/plus+sign-02.segy", "VersionId": "<v>"}, {"Key": "seed/glacier/with space-01.segy", "VersionId": "<v>"}, {"Key": "seed/intelligent_tiering/plain-00.segy", "VersionId": "<v>"}, {"Key": "seed/intelligent_tiering/with space-01.segy", "VersionId": "<v>"}, {"Key": "seed/standard/per%cent-03.segy", "VersionId": "<v>"}, {"Key": "seed/standard/per%cent-03.segy", "VersionId": "<v>"}, {"Key": "seed/standard/plain-00.segy", "VersionId": "<v>"}, {"Key": "seed/standard/plus+sign-02.segy", "VersionId": "<v>"}, {"Key": "seed/standard/with space-01.segy", "VersionId": "<v>"}], "Quiet": true}}
+boto3 s3.DeleteBucket {"Bucket": "ofreal-rr-dry-0001-src"}
+boto3 s3.GetBucketTagging {"Bucket": "ofreal-rr-dry-0001-staging"}
+boto3 s3.ListObjectVersions {"Bucket": "ofreal-rr-dry-0001-staging", "EncodingType": "url"}
+boto3 s3.DeleteObjects {"Bucket": "ofreal-rr-dry-0001-staging", "Delete": {"Objects": [{"Key": "checks/rw03-copy", "VersionId": "<v>"}], "Quiet": true}}
+boto3 s3.DeleteBucket {"Bucket": "ofreal-rr-dry-0001-staging"}
+boto3 s3.GetBucketTagging {"Bucket": "ofreal-rr-dry-0001-reports"}
+boto3 s3.ListObjectVersions {"Bucket": "ofreal-rr-dry-0001-reports", "EncodingType": "url"}
+boto3 s3.DeleteObjects {"Bucket": "ofreal-rr-dry-0001-reports", "Delete": {"Objects": [{"Key": "manifests/checksum.csv", "VersionId": "<v>"}, {"Key": "manifests/restore-nov.csv", "VersionId": "<v>"}, {"Key": "manifests/restore-v.csv", "VersionId": "<v>"}, {"Key": "reports/job-00000000-0000-0000-0000-000000000009/manifest.json", "VersionId": "<v>"}, {"Key": "reports/job-00000000-0000-0000-0000-000000000009/results/00000000-0000-0000-0000-000000000009-1.csv", "VersionId": "<v>"}], "Quiet": true}}
+boto3 s3.DeleteBucket {"Bucket": "ofreal-rr-dry-0001-reports"}
+boto3 s3.GetBucketTagging {"Bucket": "ofreal-rr-dry-0001-kms"}
+boto3 s3.ListObjectVersions {"Bucket": "ofreal-rr-dry-0001-kms", "EncodingType": "url"}
+boto3 s3.DeleteObjects {"Bucket": "ofreal-rr-dry-0001-kms", "Delete": {"Objects": [{"Key": "checks/rw08-kms", "VersionId": "<v>"}], "Quiet": true}}
+boto3 s3.DeleteBucket {"Bucket": "ofreal-rr-dry-0001-kms"}
+boto3 s3.GetBucketTagging {"Bucket": "ofreal-rr-dry-0001-guide"}
+boto3 s3.ListObjectVersions {"Bucket": "ofreal-rr-dry-0001-guide", "EncodingType": "url"}
+boto3 s3.DeleteBucket {"Bucket": "ofreal-rr-dry-0001-guide"}
+boto3 rolesanywhere.ListProfiles {}
+boto3 rolesanywhere.ListTagsForResource {"resourceArn": "arn:aws:rolesanywhere:us-west-2:123456789012:profile/00000000-0000-0000-0000-000000000002"}
+boto3 rolesanywhere.DeleteProfile {"profileId": "00000000-0000-0000-0000-000000000002"}
+boto3 rolesanywhere.ListCrls {}
+boto3 rolesanywhere.ListTagsForResource {"resourceArn": "arn:aws:rolesanywhere:us-west-2:123456789012:crl/00000000-0000-0000-0000-00000000000c"}
+boto3 rolesanywhere.DeleteCrl {"crlId": "00000000-0000-0000-0000-00000000000c"}
+boto3 rolesanywhere.ListTrustAnchors {}
+boto3 rolesanywhere.ListTagsForResource {"resourceArn": "arn:aws:rolesanywhere:us-west-2:123456789012:trust-anchor/00000000-0000-0000-0000-000000000001"}
+boto3 rolesanywhere.DeleteTrustAnchor {"trustAnchorId": "00000000-0000-0000-0000-000000000001"}
+boto3 rolesanywhere.ListTagsForResource {"resourceArn": "arn:aws:rolesanywhere:us-west-2:123456789012:trust-anchor/00000000-0000-0000-0000-000000000003"}
+boto3 rolesanywhere.DeleteTrustAnchor {"trustAnchorId": "00000000-0000-0000-0000-000000000003"}
+boto3 rolesanywhere.ListTagsForResource {"resourceArn": "arn:aws:rolesanywhere:us-west-2:123456789012:trust-anchor/00000000-0000-0000-0000-000000000004"}
+boto3 iam.ListRoles {"PathPrefix": "/omnifile-real/rr-dry-0001/"}
+boto3 iam.ListRoleTags {"RoleName": "ofreal-rr-dry-0001-edge-s3-read"}
+boto3 iam.ListRolePolicies {"RoleName": "ofreal-rr-dry-0001-edge-s3-read"}
+boto3 iam.DeleteRolePolicy {"PolicyName": "edge-s3-read", "RoleName": "ofreal-rr-dry-0001-edge-s3-read"}
+boto3 iam.ListAttachedRolePolicies {"RoleName": "ofreal-rr-dry-0001-edge-s3-read"}
+boto3 iam.DeleteRole {"RoleName": "ofreal-rr-dry-0001-edge-s3-read"}
+boto3 ec2.DescribeInstances {"Filters": [{"Name": "tag:omnifile-run", "Values": ["rr-dry-0001"]}, {"Name": "instance-state-name", "Values": ["pending", "running", "stopping", "stopped", "shutting-down"]}]}
+boto3 ec2.DescribeVpcs {"Filters": [{"Name": "tag:omnifile-run", "Values": ["rr-dry-0001"]}]}
+boto3 ec2.DescribeVpcEndpoints {"Filters": [{"Name": "tag:omnifile-run", "Values": ["rr-dry-0001"]}]}
+boto3 s3.ListBuckets {}
+boto3 sqs.ListQueues {"QueueNamePrefix": "ofreal-rr-dry-0001-events"}
+boto3 iam.ListRoles {"PathPrefix": "/omnifile-real/rr-dry-0001/"}
+boto3 iam.ListRoles {}
+boto3 s3.ListBuckets {}
+boto3 rolesanywhere.ListTrustAnchors {}
+boto3 rolesanywhere.ListTagsForResource {"resourceArn": "arn:aws:rolesanywhere:us-west-2:123456789012:trust-anchor/00000000-0000-0000-0000-000000000004"}
+boto3 resourcegroupstaggingapi.GetResources {"TagFilters": [{"Key": "omnifile-run", "Values": ["rr-dry-0001"]}]}

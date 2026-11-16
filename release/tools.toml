@@ -1,0 +1,114 @@
+# The tools that build, test, sign and release OmniFile, pinned (release/sbom.py makes the "tools" SBOM from
+# this file, and release/licences.py checks it against LICENSES.md). None of them ships in a product: the image's
+# own packages are in the appliance SBOM, the container images' in the images SBOM.
+#
+# version     the pinned version
+# licence     its SPDX licence
+# used_for    what it does here
+# pinned_in   where the version is fixed; release/tests/test_licences.py checks the version is written there
+#             when that file exists (a pin that lives only here says so)
+
+[tool.osv-scanner]
+version = "2.7.0"
+licence = "Apache-2.0"
+purl = "pkg:github/google/osv-scanner@v2.7.0"
+used_for = "release/scan.py: the vulnerability scan of every lockfile"
+pinned_in = "release/scan.py"
+
+[tool.cyclonedx-python-lib]
+version = "11.12.0"
+licence = "Apache-2.0"
+purl = "pkg:pypi/cyclonedx-python-lib@11.12.0"
+used_for = "release/validate_sbom.py: the CycloneDX 1.6 schema check of every SBOM (the official library's validator)"
+pinned_in = "release/validate_sbom.py"
+
+[tool.mkosi]
+version = "26"
+licence = "LGPL-2.1-or-later"
+purl = "pkg:deb/ubuntu/mkosi@26?distro=ubuntu-26.04"
+used_for = "appliance/build.sh: the image build, with systemd-repart and systemd-ukify (LGPL-2.1-or-later), erofs-utils (GPL-2.0-or-later), zstd (BSD-3-Clause OR GPL-2.0-only) and patchelf (GPL-3.0-or-later), each a separate program; the build's BUILD-INFO records their exact versions"
+pinned_in = "appliance/build.sh"
+
+[tool.qemu]
+version = "11.1.2"
+licence = "GPL-2.0-only"
+purl = "pkg:generic/qemu@11.1.2"
+used_for = "appliance/tests and release.sh's R3 gate: boots the image; with OVMF/edk2 (BSD-2-Clause-Patent) and swtpm (BSD-3-Clause); a separate program"
+pinned_in = "release/tools.toml (the release host's package; this is the version the dry run used)"
+
+[tool.sbsigntool]
+version = "0.9.4-3.1ubuntu9"
+licence = "GPL-3.0-or-later"
+purl = "pkg:deb/ubuntu/sbsigntool@0.9.4-3.1ubuntu9?distro=ubuntu-26.04"
+used_for = "appliance/release.sh: sbsign, sbverify and sbattach sign the UKI and systemd-boot for Secure Boot; a separate program, with mtools (GPL-3.0-or-later) to write the ESP"
+pinned_in = "release/tools.toml (Ubuntu 26.04's package on the release host)"
+
+[tool.azure-keyvault-openssl-engine]
+version = "unpinned"
+licence = "MIT"
+purl = "pkg:github/microsoft/AzureKeyVaultManagedHSMEngine"
+used_for = "appliance/release.sh: the e_akv OpenSSL engine that lets sbsign sign with the Key Vault Secure Boot key"
+pinned_in = "not yet: built on the release host from its repository (docs/design/secure-boot.md); pin it when the host is set up"
+
+[tool.azure-cli]
+version = "2.90.0"
+licence = "MIT"
+purl = "pkg:pypi/azure-cli@2.90.0"
+used_for = "appliance/pgp_kv.py: az keyvault key show/sign for the update key; az bicep for the parameters file"
+pinned_in = "release/tools.toml (the release identity's machine)"
+
+[tool.bicep]
+version = "0.48.1"
+licence = "MIT"
+purl = "pkg:github/azure/bicep@v0.48.1"
+used_for = "release/runbook.sh: compiles the release's parameters file (bicep build-params), compile only"
+pinned_in = "release/tools.toml"
+
+[tool.gh]
+version = "2.102.0"
+licence = "MIT"
+purl = "pkg:github/cli/cli@v2.102.0"
+used_for = "release/runbook.sh and appliance/source-offer/publish_sources.py: gh release create"
+pinned_in = "release/tools.toml"
+
+[tool.gnupg]
+version = "2.5.21"
+licence = "GPL-3.0-or-later"
+purl = "pkg:generic/gnupg@2.5.21"
+used_for = "checks the feed's signature in the tests (gpg --verify); a separate program"
+pinned_in = "release/tools.toml"
+
+[tool.docker-buildx]
+version = "0.38.1"
+licence = "Apache-2.0"
+purl = "pkg:github/docker/buildx@v0.38.1"
+used_for = "deploy/images/build.sh: the container image builds"
+pinned_in = "release/tools.toml"
+
+[tool.uv]
+version = "0.9.26"
+licence = "MIT OR Apache-2.0"
+purl = "pkg:github/astral-sh/uv@0.9.26"
+used_for = "syncs the Python environments from their locks (the images use the uv 0.9 image, pinned by digest)"
+pinned_in = "release/tools.toml"
+
+[tool.pester]
+version = "5.7.1"
+licence = "Apache-2.0"
+purl = "pkg:nuget/Pester@5.7.1"
+used_for = "tests/windows/run-tests.sh: the Windows client kit's unit tests (PowerShell Gallery), test-only"
+pinned_in = "tests/windows/run-tests.sh"
+
+[tool."@microsoft/app-manifest"]
+version = "1.1.3"
+licence = "MIT"
+purl = "pkg:npm/%40microsoft/app-manifest@1.1.3"
+used_for = "deploy/teams/build.sh: the Teams app manifest's JSON schema, fetched with npm pack and checked by its sha512, dev tool"
+pinned_in = "deploy/teams/build.sh"
+
+[tool.ruff]
+version = "0.8.6"
+licence = "MIT"
+purl = "pkg:pypi/ruff@0.8.6"
+used_for = "tests/real: lint, run through uvx (the service and relay lock their own ruff)"
+pinned_in = "tests/real/run.sh"

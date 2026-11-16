@@ -1,0 +1,101 @@
+name: smb-guard A-suite (ubuntu-26.04)
+
+# The smb-guard's regression suite (edge/crates/omnifile-smbguard/tests/a-suite):
+# the filer spike's A1-A13 plus the O_TRUNC fence, run against the production
+# guard library under the production systemd drop-ins (edge/systemd/) on the
+# appliance's OS (decision 26, kernel >= 6.14 for pre-content fanotify).
+# It includes the kill -9 loops (A6), the 17,000-reader flood (A8) and a test
+# smbd (A11/A12), so it is slow: up to about 75 minutes (timeout 120).
+#
+# The suite needs root, systemd as PID 1 (Type=notify units, the fd store) and
+# a sparse xfs loop image ($SG_ROOT, default /srv/omni-guard). SG_REEXEC=1 also
+# runs `systemctl daemon-reexec` in A6, which is safe only on a throwaway runner.
+
+# Manual only: the repo has no GitHub-hosted runners (owner's choice, for cost),
+# so lanes run locally. Run this one from the Actions tab when runners exist.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: smbguard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  a-suite:
+    name: smb-guard A-suite as root on xfs (ubuntu-26.04)
+    # Heavy lane: skipped on draft PRs (see docs/BUILD-PLAN.md, "CI cost").
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          workspaces: edge
+
+      - name: Kernel and packages
+        run: |
+          set -euo pipefail
+          uname -a
+          grep -E 'CONFIG_FANOTIFY(_ACCESS_PERMISSIONS)?=|CONFIG_XFS_FS=' "/boot/config-$(uname -r)" || true
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xfsprogs attr samba samba-vfs-modules smbclient >/dev/null
+          # The suite runs its own smbd on port 4450; the packaged one must not hold the volume.
+          sudo systemctl disable --now smbd nmbd 2>/dev/null || true
+
+      - name: Build the guard (release)
+        working-directory: edge
+        run: cargo build --release --locked -p omnifile-smbguard
+
+      # Previous Versions: the rendered share stanza under a real smbd, with
+      # the daemon's rewind layout (fsal-namespace.md section 7). Fast; its
+      # own smbd on port 4455.
+      - name: Samba shadow_copy2 with the rendered stanza
+        working-directory: edge
+        run: |
+          cargo build --locked -p omnifile-acl --example omniacl
+          sudo bash crates/omnifile-acl/tests/shadow_copy2.sh --omniacl target/debug/examples/omniacl
+
+      # vfs_omnifile_prevver (samba-vfs/, GPL-3, decision 36): built inside the
+      # Samba release matching this smbd (pinned SHA-256), linked against nothing.
+      - name: Build vfs_omnifile_prevver
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y -qq --no-install-recommends build-essential python3-dev \
+            libgnutls28-dev flex bison perl pkg-config zlib1g-dev libtirpc-dev libacl1-dev \
+            libpopt-dev libicu-dev libparse-yapp-perl libreadline-dev >/dev/null
+          samba-vfs/build.sh
+
+      - name: A-suite
+        run: sudo SG_REEXEC=1 bash edge/crates/omnifile-smbguard/tests/a-suite/run.sh --bin-dir edge/target/release
+
+      - name: Job summary
+        if: always()
+        run: |
+          if sudo test -f /srv/omni-guard/results/summary.md; then
+            sudo cat /srv/omni-guard/results/summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "The A-suite wrote no summary (see the logs artifact)." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Collect logs
+        if: always()
+        run: |
+          set +e
+          mkdir -p "$RUNNER_TEMP/smbguard-logs"
+          sudo cp -r /srv/omni-guard/results /srv/omni-guard/logs "$RUNNER_TEMP/smbguard-logs/" 2>/dev/null
+          sudo journalctl --no-pager -o short-precise -u 'omnifile-smbguard-test*' > "$RUNNER_TEMP/smbguard-logs/journal.txt" 2>&1
+          sudo chown -R "$(id -u):$(id -g)" "$RUNNER_TEMP/smbguard-logs"
+          true
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: smbguard-a-suite-logs
+          path: ${{ runner.temp }}/smbguard-logs
+          if-no-files-found: warn
+          retention-days: 14

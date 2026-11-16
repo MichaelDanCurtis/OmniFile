@@ -1,0 +1,17 @@
+version=0.1.0
+architecture=arm64
+snapshot=20261023T000000Z
+sources_repo=MichaelDanCurtis/omnifile-gateway-sources
+seed=a6fd4b8a-7007-4485-aa9d-cbf05ee7f131
+source_date_epoch=1793849119
+commit=unknown+dirty
+builder=docker ubuntu:26.04
+mkosi=26
+systemd-repart=259.9-0ubuntu0.1
+systemd-ukify=259.9-0ubuntu0.1
+systemd-boot-efi=259.9-0ubuntu0.1
+erofs-utils=1.9.1-1
+zstd=1.5.7+dfsg-3
+patchelf=0.18.0-1.4build1
+udev=259.9-0ubuntu0.1
+stage_sha256=c950579e9e64c5ee1dfede0e957acaf117b90e399303e9ff13b1b525118ecf76

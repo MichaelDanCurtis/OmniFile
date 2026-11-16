@@ -1,0 +1,25 @@
+[package]
+name = "omnifile-cache"
+description = "OmniFile Gateway edge cache of remote objects: SSD budget, per-chunk LRU, header cache, read-ahead (docs/milestones/M5.md, edge data path)"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+omnifile-blob = { path = "../omnifile-blob" }
+omnifile-marker = { path = "../omnifile-marker" }
+omnifile-stub = { path = "../omnifile-stub" }
+# Error types. MIT OR Apache-2.0.
+thiserror = "2"
+# Background read-ahead, eviction and prefetch tasks. MIT.
+tokio = { version = "1", features = ["rt", "sync", "time", "macros"] }
+# Structured logging. MIT.
+tracing = "0.1"
+
+[dev-dependencies]
+bytes = "1"
+libc = "0.2"
+omnifile-integrity = { path = "../omnifile-integrity" }
+tempfile = "3"
+tokio = { version = "1", features = ["rt", "rt-multi-thread", "macros", "sync", "time"] }

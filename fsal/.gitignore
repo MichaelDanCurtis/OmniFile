@@ -1,0 +1,5 @@
+# Build products of fsal/build/run.sh and in-place makes
+/.build/
+*.o
+*.so
+__pycache__/

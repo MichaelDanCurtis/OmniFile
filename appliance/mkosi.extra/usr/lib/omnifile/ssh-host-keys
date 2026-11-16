@@ -1,0 +1,19 @@
+#!/bin/sh
+# omnifile-ssh-keygen.service: this box's own SSH host keys.
+#
+# /etc/ssh/omnifile-own-host-keys marks keys this box made itself. Without it, any host keys
+# present came with the image (images built before the keys were removed from it shipped one
+# set for every box), so they are replaced, once. Clients that knew the old key see a changed
+# host key after that update, which is the point: every box of the image had that key.
+set -eu
+MARK=/etc/ssh/omnifile-own-host-keys
+if [ ! -e "$MARK" ]; then
+  shared=$(ls /etc/ssh/ssh_host_*_key 2>/dev/null | wc -l)
+  rm -f /etc/ssh/ssh_host_*_key /etc/ssh/ssh_host_*_key.pub
+  /usr/bin/ssh-keygen -A
+  printf 'made %s, replacing %s key(s) the image shipped\n' "$(date -u +%FT%TZ)" "$shared" >"$MARK.new"
+  mv "$MARK.new" "$MARK"
+  echo "made this box's own SSH host keys (replaced $shared shipped with the image)"
+else
+  /usr/bin/ssh-keygen -A
+fi

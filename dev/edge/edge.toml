@@ -1,0 +1,50 @@
+# Dev / e2e configuration of the edge daemon (/etc/omnifile/edge.toml).
+# Rendered by dev/scripts/install-edge.sh (@FS_UUID@ = the data volume's xfs
+# UUID; the previous file is kept as edge.toml.bak when it differs). Short
+# timers so the e2e test runs in minutes; production defaults are in
+# edge/crates/omnifile-edge/src/config.rs.
+data_root = "/srv/omnifile/data"
+replica_path = "/var/lib/omnifile/replica.db"
+socket_path = "/run/omnifile/fsal.sock"
+# Fills and stubs go through the smb-guard's private fill mount (the unit's
+# BindPaths=, edge/systemd/omnifile-edge.service.d/10-smbguard.conf).
+fill_root = "/run/omnifile-fill"
+# edge_id comes from the enrolled identity (omnifile-edge enrol).
+backend = "service"
+
+[commit]
+quiet_s = 3
+# WORM shares too, so the e2e lanes don't wait the production 60 s (decision 67).
+worm_quiet_s = 3
+
+[fsal]
+# Commits wait this long after a Ganesha instance connects, for its NFSv4
+# clients to reclaim their opens. The dev Ganesha runs graceless
+# (dev/edge/ganesha-base.conf): there is no reclaim period to wait out (the
+# production default, 150 s, is Ganesha's lease plus grace).
+reclaim_window_s = 15
+
+[stub]
+interval_s = 2
+
+[feed]
+wait_s = 5
+retry_s = 2
+
+[log]
+format = "json"
+filter = "info"
+
+[service]
+identity_dir = "/var/lib/omnifile/identity"
+outbox_dir = "/var/lib/omnifile/outbox"
+
+[smbguard]
+# The guard refuses to mark any filesystem but this one.
+fs_uuid = "@FS_UUID@"
+
+[acl]
+# Short timers so the e2e test sees an Explorer edit within a minute.
+full_scan_s = 20
+first_full_s = 20
+on_change_s = 5

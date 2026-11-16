@@ -1,0 +1,24 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/omnifile-acl",
+    "crates/omnifile-blob",
+    "crates/omnifile-cache",
+    "crates/omnifile-control",
+    "crates/omnifile-detect",
+    "crates/omnifile-edge",
+    "crates/omnifile-fsal-proto",
+    "crates/omnifile-identity",
+    "crates/omnifile-integrity",
+    "crates/omnifile-marker",
+    "crates/omnifile-replica",
+    "crates/omnifile-setup",
+    "crates/omnifile-smbguard",
+    "crates/omnifile-stub",
+]
+
+[workspace.package]
+edition = "2024"
+version = "0.1.0"
+publish = false
+license = "BUSL-1.1"

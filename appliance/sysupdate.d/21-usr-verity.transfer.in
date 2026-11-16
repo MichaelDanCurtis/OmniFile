@@ -1,0 +1,16 @@
+# systemd-sysupdate: the matching dm-verity hash, into the inactive usr-verity slot.
+[Transfer]
+ProtectVersion=%A
+
+[Source]
+Type=url-file
+Path=@FEED_URL@
+MatchPattern=omnifile-edge_@v.usr-%a-verity.@u.raw.zst
+
+[Target]
+Type=partition
+Path=auto
+MatchPattern=omnifile-edge_@v_verity
+MatchPartitionType=usr-verity
+PartitionFlags=0
+ReadOnly=1

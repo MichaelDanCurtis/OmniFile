@@ -1,0 +1,41 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ImportTheEdgeCaCrlForThisTrustAnchorOnly",
+      "Effect": "Allow",
+      "Action": [
+        "rolesanywhere:ImportCrl",
+        "rolesanywhere:TagResource"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestTag/omnifile-trust-anchor": "0b5f6c2e-1111-4222-8333-944445555666"
+        },
+        "ForAllValues:StringEquals": {
+          "aws:TagKeys": [
+            "omnifile-trust-anchor"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "UpdateOnlyThatCrl",
+      "Effect": "Allow",
+      "Action": "rolesanywhere:UpdateCrl",
+      "Resource": "arn:aws:rolesanywhere:eu-west-1:123456789012:crl/*",
+      "Condition": {
+        "StringEquals": {
+          "aws:ResourceTag/omnifile-trust-anchor": "0b5f6c2e-1111-4222-8333-944445555666"
+        }
+      }
+    },
+    {
+      "Sid": "FindItAgainAfterALostAnswer",
+      "Effect": "Allow",
+      "Action": "rolesanywhere:ListCrls",
+      "Resource": "*"
+    }
+  ]
+}

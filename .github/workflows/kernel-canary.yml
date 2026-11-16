@@ -1,0 +1,84 @@
+name: kernel canary
+
+# Asserts the kernel behaviours the stub guard's fail-closed design depends on (risk R3 in
+# docs/BUILD-PLAN.md); see ci/kernel-canary/README.md. It builds only spikes/filer/guard.
+
+# Manual only: the repo has no GitHub-hosted runners (owner's choice, for cost),
+# so lanes run locally. Run this one from the Actions tab when runners exist.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Manual runs are never cancelled (the pull_request case is kept for when PRs trigger it again).
+  # Runners are discarded after each job, so a cancel cannot leave a group or volume behind.
+  group: kernel-canary-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  canary:
+    # One job per check: each gets a fresh runner and volume, a wedged check cannot hide the
+    # others' results, and the checks run in parallel.
+    name: kernel canary ${{ matrix.check }} (ubuntu-26.04)
+    # Heavy lane: skipped on draft PRs (see docs/BUILD-PLAN.md, "CI cost").
+    if: ${{ !github.event.pull_request.draft }}
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [k1, k2, k3, k4, k5]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Kernel under test
+        run: |
+          uname -r
+          grep -E '^CONFIG_(FANOTIFY|FANOTIFY_ACCESS_PERMISSIONS|XFS_FS)=' "/boot/config-$(uname -r)"
+
+      - name: Install tools
+        timeout-minutes: 5
+        run: sudo apt-get update -q && sudo apt-get install -y -q xfsprogs attr
+
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          workspaces: spikes/filer/guard
+
+      - name: Build the spike guard and omnitool
+        timeout-minutes: 10
+        working-directory: spikes/filer/guard
+        run: cargo build --release --locked
+
+      - name: Run the kernel canary
+        # Every blocking read inside has its own SIGKILL timeout and every check has a budget
+        # (run.sh); this step timeout is the last resort.
+        timeout-minutes: 25
+        run: sudo bash ci/kernel-canary/run.sh --bin-dir spikes/filer/guard/target/release --only ${{ matrix.check }}
+
+      - name: Job summary
+        if: always()
+        run: |
+          if [ -f /srv/omni-a/results/summary.md ]; then
+            cat /srv/omni-a/results/summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "kernel canary produced no summary (kernel $(uname -r))" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Release any leftover group, reader or volume
+        if: always()
+        timeout-minutes: 2
+        run: sudo bash ci/kernel-canary/run.sh --cleanup-only
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: kernel-canary-logs-${{ matrix.check }}
+          path: |
+            /srv/omni-a/logs
+            /srv/omni-a/results
+          if-no-files-found: ignore

@@ -1,0 +1,7 @@
+# The owner's allow-list: never committed, never written by the harness.
+allow-list.local
+# Each run's state, logs, secrets and evidence (a real run's evidence for ticked lines is
+# copied to results/<run id>/, which is committed).
+out/
+.venv/
+__pycache__/

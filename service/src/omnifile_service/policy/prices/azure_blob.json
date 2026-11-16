@@ -1,0 +1,218 @@
+{
+  "backend_kind": "azure_blob",
+  "currency": "USD",
+  "as_of": "2026-10-06",
+  "source": "https://azure.microsoft.com/en-us/pricing/details/storage/blobs/",
+  "verify": true,
+  "default_region": "eastus",
+  "notes": [
+    "Read from the Azure Retail Prices API (prices.azure.com; product 'General Block Blob v2' and 'Blob Features', pay-as-you-go, first capacity band) on 2026-10-06. Not yet checked against Microsoft's price page, so every number is verify: true.",
+    "Keys: '<Class>' is LRS (the archive account and the single-account layout); '<Class>:ZRS' is the zonal live account of the two-account layout. GRS accounts cost more than shown.",
+    "Storage is per GB-month and operations per 10,000, as Microsoft states them. Azure bills a GB as 2^30 bytes.",
+    "Smart capacity is billed at the underlying Hot, Cool or Cold rate. Smart adds a monitoring fee per 10,000 objects over 128 KiB per month, and charges nothing for moves within Smart, early deletion or retrieval (docs/research/2026-09-26-verification.md).",
+    "A tier change to a cooler tier is charged as a write at the destination tier's rate (Microsoft's access-tiers page; VERIFY)."
+  ],
+  "regions": {
+    "eastus": {
+      "classes": {
+        "Hot": {
+          "gb_month": "0.0208",
+          "write_per_10k": "0.05",
+          "read_per_10k": "0.004",
+          "retrieval_per_gb": "0",
+          "minimum_days": null,
+          "verify": true
+        },
+        "Hot:ZRS": {
+          "gb_month": "0.026",
+          "write_per_10k": "0.0625",
+          "read_per_10k": "0.004",
+          "retrieval_per_gb": "0",
+          "minimum_days": null,
+          "verify": true
+        },
+        "Cool": {
+          "gb_month": "0.0152",
+          "write_per_10k": "0.1",
+          "read_per_10k": "0.01",
+          "retrieval_per_gb": "0.01",
+          "minimum_days": 30,
+          "verify": true
+        },
+        "Cool:ZRS": {
+          "gb_month": "0.019",
+          "write_per_10k": "0.1",
+          "read_per_10k": "0.01",
+          "retrieval_per_gb": "0.01",
+          "minimum_days": 30,
+          "verify": true
+        },
+        "Cold": {
+          "gb_month": "0.0036",
+          "write_per_10k": "0.18",
+          "read_per_10k": "0.1",
+          "retrieval_per_gb": "0.03",
+          "minimum_days": 90,
+          "verify": true
+        },
+        "Cold:ZRS": {
+          "gb_month": "0.004",
+          "write_per_10k": "0.2",
+          "read_per_10k": "0.1",
+          "retrieval_per_gb": "0.03",
+          "minimum_days": 90,
+          "verify": true
+        },
+        "Archive": {
+          "gb_month": "0.00099",
+          "write_per_10k": "0.1",
+          "read_per_10k": "5",
+          "retrieval_per_gb": "0.02",
+          "minimum_days": 180,
+          "retrieval_per_gb_high": "0.1",
+          "read_per_10k_high": "50",
+          "verify": true
+        },
+        "Smart": {
+          "monitoring_per_10k_objects_month": "0.04",
+          "minimum_days": null,
+          "verify": true
+        }
+      }
+    },
+    "westeurope": {
+      "classes": {
+        "Hot": {
+          "gb_month": "0.0196",
+          "write_per_10k": "0.054",
+          "read_per_10k": "0.0043",
+          "retrieval_per_gb": "0",
+          "minimum_days": null,
+          "verify": true
+        },
+        "Hot:ZRS": {
+          "gb_month": "0.024",
+          "write_per_10k": "0.0675",
+          "read_per_10k": "0.0043",
+          "retrieval_per_gb": "0",
+          "minimum_days": null,
+          "verify": true
+        },
+        "Cool": {
+          "gb_month": "0.01",
+          "write_per_10k": "0.1",
+          "read_per_10k": "0.01",
+          "retrieval_per_gb": "0.01",
+          "minimum_days": 30,
+          "verify": true
+        },
+        "Cool:ZRS": {
+          "gb_month": "0.0131",
+          "write_per_10k": "0.1",
+          "read_per_10k": "0.01",
+          "retrieval_per_gb": "0.01",
+          "minimum_days": 30,
+          "verify": true
+        },
+        "Cold": {
+          "gb_month": "0.0045",
+          "write_per_10k": "0.18",
+          "read_per_10k": "0.1",
+          "retrieval_per_gb": "0.03",
+          "minimum_days": 90,
+          "verify": true
+        },
+        "Cold:ZRS": {
+          "gb_month": "0.005",
+          "write_per_10k": "0.2",
+          "read_per_10k": "0.1",
+          "retrieval_per_gb": "0.03",
+          "minimum_days": 90,
+          "verify": true
+        },
+        "Archive": {
+          "gb_month": "0.0018",
+          "write_per_10k": "0.12",
+          "read_per_10k": "6",
+          "retrieval_per_gb": "0.024",
+          "minimum_days": 180,
+          "retrieval_per_gb_high": "0.13",
+          "read_per_10k_high": "65",
+          "verify": true
+        },
+        "Smart": {
+          "monitoring_per_10k_objects_month": "0.04",
+          "minimum_days": null,
+          "verify": true
+        }
+      }
+    },
+    "uksouth": {
+      "classes": {
+        "Hot": {
+          "gb_month": "0.0192",
+          "write_per_10k": "0.059",
+          "read_per_10k": "0.0047",
+          "retrieval_per_gb": "0",
+          "minimum_days": null,
+          "verify": true
+        },
+        "Hot:ZRS": {
+          "gb_month": "0.024",
+          "write_per_10k": "0.07375",
+          "read_per_10k": "0.0047",
+          "retrieval_per_gb": "0",
+          "minimum_days": null,
+          "verify": true
+        },
+        "Cool": {
+          "gb_month": "0.0105",
+          "write_per_10k": "0.11",
+          "read_per_10k": "0.011",
+          "retrieval_per_gb": "0.011",
+          "minimum_days": 30,
+          "verify": true
+        },
+        "Cool:ZRS": {
+          "gb_month": "0.013125",
+          "write_per_10k": "0.11",
+          "read_per_10k": "0.011",
+          "retrieval_per_gb": "0.011",
+          "minimum_days": 30,
+          "verify": true
+        },
+        "Cold": {
+          "gb_month": "0.0045",
+          "write_per_10k": "0.18",
+          "read_per_10k": "0.1",
+          "retrieval_per_gb": "0.03",
+          "minimum_days": 90,
+          "verify": true
+        },
+        "Cold:ZRS": {
+          "gb_month": "0.005",
+          "write_per_10k": "0.2",
+          "read_per_10k": "0.1",
+          "retrieval_per_gb": "0.03",
+          "minimum_days": 90,
+          "verify": true
+        },
+        "Archive": {
+          "gb_month": "0.0018",
+          "write_per_10k": "0.106",
+          "read_per_10k": "5.3",
+          "retrieval_per_gb": "0.0208",
+          "minimum_days": 180,
+          "retrieval_per_gb_high": "0.125",
+          "read_per_10k_high": "62.5",
+          "verify": true
+        },
+        "Smart": {
+          "monitoring_per_10k_objects_month": "0.04",
+          "minimum_days": null,
+          "verify": true
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "omnifile-portal-e2e",
+  "private": true,
+  "version": "0.0.0",
+  "description": "M4 browser tests: Playwright (chromium) against the real web app and the dev OIDC issuer (dev/m4/stack.py).",
+  "license": "BUSL-1.1",
+  "type": "module",
+  "packageManager": "npm@11.19.0",
+  "engines": {
+    "node": ">=22",
+    "npm": ">=10.9.0"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:mock": "playwright test -c playwright.mock.config.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0"
+  }
+}

@@ -1,0 +1,277 @@
+az account show -o json
+az account set --subscription 00000000-0000-4000-8000-0000000000a1
+az account show -o json
+az account show -o json
+az group create -n rg-ofreal-rr-dry-0001 -l swedencentral --tags omnifile-run=rr-dry-0001 omnifile-expires=2026-11-03T12:00:00Z omnifile-harness=tests-real -o json
+az ad group create --display-name ofreal-rr-dry-0001-pg-admins --mail-nickname ofreal-rr-dry-0001-pg-admins --description omnifile-run=rr-dry-0001 omnifile-expires=2026-11-03T12:00:00Z -o json
+az ad signed-in-user show -o json
+az ad group member add --group 0000f00d-0000-0000-0000-000000000001 --member-id 00000000-0000-4000-8000-0000000000c1 -o json
+az acr create -g rg-ofreal-rr-dry-0001 -n ofrealr04a37bf --sku Basic -l swedencentral --tags omnifile-run=rr-dry-0001 omnifile-expires=2026-11-03T12:00:00Z omnifile-harness=tests-real -o json
+az deployment group list -g rg-ofreal-rr-dry-0001 -o json
+az deployment group list -g rg-ofreal-rr-dry-0001 -o json
+az network list-service-tags --location swedencentral --output json
+az deployment group list -g rg-ofreal-rr-dry-0001 -o json
+az deployment group what-if --resource-group rg-ofreal-rr-dry-0001 --name omnifile --template-file <tmp>/template.json --parameters @<tmp>/parameters.json --no-pretty-print --output json
+env OMNIFILE_RUN_EXPIRES=2026-11-03T12:00:00Z OMNIFILE_RUN_ID=rr-dry-0001 OMNIFILE_TEST_ENROL_CIDRS=10.60.1.0/24 OMNIFILE_TEST_PG_ADMIN_CIDRS=10.60.1.0/24 OMNIFILE_TEST_PG_ADMIN_NAME=ofreal-rr-dry-0001-pg-admins OMNIFILE_TEST_PG_ADMIN_OID=0000f00d-0000-0000-0000-000000000001 OMNIFILE_TEST_PREFIX=r04a37bf OMNIFILE_TEST_REGISTRY=ofrealr04a37bf.azurecr.io OMNIFILE_TEST_REGISTRY_ID=/subscriptions/00000000-0000-4000-8000-0000000000a1/resourceGroups/rg-ofreal-rr-dry-0001/providers/Microsoft.ContainerRegistry/registries/ofrealr04a37bf OMNIFILE_TEST_UPLOADER_OID=00000000-0000-4000-8000-0000000000c1 OMNIFILE_TEST_WEB_CIDRS=10.60.1.0/24 OMNI_ACR=ofrealr04a37bf OMNI_DEPLOYMENT_SIZE=small OMNI_EDGE_CIDRS=10.60.1.0/24 OMNI_PG_ADMIN_GROUP=ofreal-rr-dry-0001-pg-admins OMNI_PREFIX=r04a37bf OMNI_RELEASE=0.0.0 OMNI_SOURCE_REGISTRY=ofrealr04a37bf.azurecr.io OMNI_TEST_ALERTS=false OMNI_TEST_API_MAX_REPLICAS= OMNI_TEST_API_MIN_REPLICAS= OMNI_TEST_BLOB_SOFT_DELETE_DAYS=1 OMNI_TEST_HUB_NO_GATEWAY=1 OMNI_TEST_KV_PURGE_PROTECTION=false OMNI_TEST_KV_SOFT_DELETE_DAYS=7 OMNI_TEST_LOCK_WORM=false OMNI_TEST_PG_SKU_NAME= OMNI_TEST_PG_SKU_TIER= OMNI_TEST_PG_STORAGE_GB= OMNI_TEST_RUN_EXPIRES=2026-11-03T12:00Z OMNI_TEST_RUN_ID=rr-dry-0001 OMNI_TEST_UID=20002 OMNI_TEST_USER=geo-writer OMNI_TEST_WORKER_MAX_REPLICAS= OMNI_TEST_WORM_RETENTION_DAYS=1 OMNI_USER_CIDRS=10.60.1.0/24  # what the parameters read
+az account show -o json
+az account show -o json
+az network vnet create -g rg-ofreal-rr-dry-0001 -n vnet-ofreal-hub -l swedencentral --address-prefixes 10.62.0.0/16 --tags omnifile-run=rr-dry-0001 omnifile-expires=2026-11-03T12:00:00Z omnifile-harness=tests-real -o json
+az deployment group list -g rg-ofreal-rr-dry-0001 -o json
+az deployment group list -g rg-ofreal-rr-dry-0001 -o json
+az group create --name rg-ofreal-rr-dry-0001 --location swedencentral -o none
+az deployment group list -g rg-ofreal-rr-dry-0001 -o json
+az network list-service-tags --location swedencentral --output json
+az deployment group list -g rg-ofreal-rr-dry-0001 -o json
+az deployment group what-if --resource-group rg-ofreal-rr-dry-0001 --name omnifile --template-file <tmp>/template.json --parameters @<tmp>/parameters.json --no-pretty-print --output json
+env OMNIFILE_RUN_EXPIRES=2026-11-03T12:00:00Z OMNIFILE_RUN_ID=rr-dry-0001 OMNIFILE_TEST_ENROL_CIDRS=10.60.1.0/24 OMNIFILE_TEST_PG_ADMIN_CIDRS=10.60.1.0/24 OMNIFILE_TEST_PG_ADMIN_NAME=ofreal-rr-dry-0001-pg-admins OMNIFILE_TEST_PG_ADMIN_OID=0000f00d-0000-0000-0000-000000000001 OMNIFILE_TEST_PREFIX=r04a37bf OMNIFILE_TEST_REGISTRY=ofrealr04a37bf.azurecr.io OMNIFILE_TEST_REGISTRY_ID=/subscriptions/00000000-0000-4000-8000-0000000000a1/resourceGroups/rg-ofreal-rr-dry-0001/providers/Microsoft.ContainerRegistry/registries/ofrealr04a37bf OMNIFILE_TEST_UPLOADER_OID=00000000-0000-4000-8000-0000000000c1 OMNIFILE_TEST_WEB_CIDRS=10.60.1.0/24 OMNI_ACR=ofrealr04a37bf OMNI_DEPLOYMENT_SIZE=small OMNI_EDGE_CIDRS=10.60.1.0/24 OMNI_PG_ADMIN_GROUP=ofreal-rr-dry-0001-pg-admins OMNI_PREFIX=r04a37bf OMNI_RELEASE=0.0.0 OMNI_SOURCE_REGISTRY=ofrealr04a37bf.azurecr.io OMNI_TEST_ALERTS=false OMNI_TEST_API_MAX_REPLICAS= OMNI_TEST_API_MIN_REPLICAS= OMNI_TEST_BLOB_SOFT_DELETE_DAYS=1 OMNI_TEST_HUB_NO_GATEWAY=1 OMNI_TEST_KV_PURGE_PROTECTION=false OMNI_TEST_KV_SOFT_DELETE_DAYS=7 OMNI_TEST_LOCK_WORM=false OMNI_TEST_PG_SKU_NAME= OMNI_TEST_PG_SKU_TIER= OMNI_TEST_PG_STORAGE_GB= OMNI_TEST_RUN_EXPIRES=2026-11-03T12:00Z OMNI_TEST_RUN_ID=rr-dry-0001 OMNI_TEST_UID=20002 OMNI_TEST_USER=geo-writer OMNI_TEST_WORKER_MAX_REPLICAS= OMNI_TEST_WORM_RETENTION_DAYS=1 OMNI_USER_CIDRS=10.60.1.0/24 OMNI_WHATIF_DIGEST=sha256:<digest>  # what the parameters read
+az deployment group list -g rg-ofreal-rr-dry-0001 -o json
+az deployment group what-if --resource-group rg-ofreal-rr-dry-0001 --name omnifile --template-file <tmp>/template.json --parameters @<tmp>/parameters.json --no-pretty-print --output json
+env OMNIFILE_RUN_EXPIRES=2026-11-03T12:00:00Z OMNIFILE_RUN_ID=rr-dry-0001 OMNIFILE_TEST_ENROL_CIDRS=10.60.1.0/24 OMNIFILE_TEST_PG_ADMIN_CIDRS=10.60.1.0/24 OMNIFILE_TEST_PG_ADMIN_NAME=ofreal-rr-dry-0001-pg-admins OMNIFILE_TEST_PG_ADMIN_OID=0000f00d-0000-0000-0000-000000000001 OMNIFILE_TEST_PREFIX=r04a37bf OMNIFILE_TEST_REGISTRY=ofrealr04a37bf.azurecr.io OMNIFILE_TEST_REGISTRY_ID=/subscriptions/00000000-0000-4000-8000-0000000000a1/resourceGroups/rg-ofreal-rr-dry-0001/providers/Microsoft.ContainerRegistry/registries/ofrealr04a37bf OMNIFILE_TEST_UPLOADER_OID=00000000-0000-4000-8000-0000000000c1 OMNIFILE_TEST_WEB_CIDRS=10.60.1.0/24 OMNI_ACR=ofrealr04a37bf OMNI_DEPLOYMENT_SIZE=small OMNI_EDGE_CIDRS=10.60.1.0/24 OMNI_PG_ADMIN_GROUP=ofreal-rr-dry-0001-pg-admins OMNI_PREFIX=r04a37bf OMNI_RELEASE=0.0.0 OMNI_SOURCE_REGISTRY=ofrealr04a37bf.azurecr.io OMNI_TEST_ALERTS=false OMNI_TEST_API_MAX_REPLICAS= OMNI_TEST_API_MIN_REPLICAS= OMNI_TEST_BLOB_SOFT_DELETE_DAYS=1 OMNI_TEST_HUB_NO_GATEWAY=1 OMNI_TEST_KV_PURGE_PROTECTION=false OMNI_TEST_KV_SOFT_DELETE_DAYS=7 OMNI_TEST_LOCK_WORM=false OMNI_TEST_PG_SKU_NAME= OMNI_TEST_PG_SKU_TIER= OMNI_TEST_PG_STORAGE_GB= OMNI_TEST_RUN_EXPIRES=2026-11-03T12:00Z OMNI_TEST_RUN_ID=rr-dry-0001 OMNI_TEST_UID=20002 OMNI_TEST_USER=geo-writer OMNI_TEST_WORKER_MAX_REPLICAS= OMNI_TEST_WORM_RETENTION_DAYS=1 OMNI_USER_CIDRS=10.60.1.0/24 OMNI_WHATIF_DIGEST=sha256:<digest>  # what the parameters read
+az deployment group create --resource-group rg-ofreal-rr-dry-0001 --name omnifile --template-file <tmp>/template.json --parameters @<tmp>/parameters.json --output json
+env OMNIFILE_RUN_EXPIRES=2026-11-03T12:00:00Z OMNIFILE_RUN_ID=rr-dry-0001 OMNIFILE_TEST_ENROL_CIDRS=10.60.1.0/24 OMNIFILE_TEST_PG_ADMIN_CIDRS=10.60.1.0/24 OMNIFILE_TEST_PG_ADMIN_NAME=ofreal-rr-dry-0001-pg-admins OMNIFILE_TEST_PG_ADMIN_OID=0000f00d-0000-0000-0000-000000000001 OMNIFILE_TEST_PREFIX=r04a37bf OMNIFILE_TEST_REGISTRY=ofrealr04a37bf.azurecr.io OMNIFILE_TEST_REGISTRY_ID=/subscriptions/00000000-0000-4000-8000-0000000000a1/resourceGroups/rg-ofreal-rr-dry-0001/providers/Microsoft.ContainerRegistry/registries/ofrealr04a37bf OMNIFILE_TEST_UPLOADER_OID=00000000-0000-4000-8000-0000000000c1 OMNIFILE_TEST_WEB_CIDRS=10.60.1.0/24 OMNI_ACR=ofrealr04a37bf OMNI_DEPLOYMENT_SIZE=small OMNI_EDGE_CIDRS=10.60.1.0/24 OMNI_PG_ADMIN_GROUP=ofreal-rr-dry-0001-pg-admins OMNI_PREFIX=r04a37bf OMNI_RELEASE=0.0.0 OMNI_SOURCE_REGISTRY=ofrealr04a37bf.azurecr.io OMNI_TEST_ALERTS=false OMNI_TEST_API_MAX_REPLICAS= OMNI_TEST_API_MIN_REPLICAS= OMNI_TEST_BLOB_SOFT_DELETE_DAYS=1 OMNI_TEST_HUB_NO_GATEWAY=1 OMNI_TEST_KV_PURGE_PROTECTION=false OMNI_TEST_KV_SOFT_DELETE_DAYS=7 OMNI_TEST_LOCK_WORM=false OMNI_TEST_PG_SKU_NAME= OMNI_TEST_PG_SKU_TIER= OMNI_TEST_PG_STORAGE_GB= OMNI_TEST_RUN_EXPIRES=2026-11-03T12:00Z OMNI_TEST_RUN_ID=rr-dry-0001 OMNI_TEST_UID=20002 OMNI_TEST_USER=geo-writer OMNI_TEST_WORKER_MAX_REPLICAS= OMNI_TEST_WORM_RETENTION_DAYS=1 OMNI_USER_CIDRS=10.60.1.0/24 OMNI_WHATIF_DIGEST=sha256:<digest>  # what the parameters read
+az deployment group list -g rg-ofreal-rr-dry-0001 -o json
+az deployment group show -g rg-ofreal-rr-dry-0001 -n omnifile --query properties -o json
+az acr import --name ofrealr04a37bf --source ofrealr04a37bf.azurecr.io/omnifile-relay@sha256:<digest> --image omnifile-relay:0.0.0 --force
+az acr import --name ofrealr04a37bf --source ofrealr04a37bf.azurecr.io/omnifile-service@sha256:<digest> --image omnifile-service:0.0.0 --force
+az acr import --name ofrealr04a37bf --source ofrealr04a37bf.azurecr.io/omnifile-web@sha256:<digest> --image omnifile-web:0.0.0 --force
+az deployment group list -g rg-ofreal-rr-dry-0001 -o json
+az deployment group show -g rg-ofreal-rr-dry-0001 -n omnifile --query properties -o json
+az deployment group show -g rg-ofreal-rr-dry-0001 -n omnifile --query properties.outputs.internalEnvironmentDefaultDomain.value -o tsv
+az deployment group show -g rg-ofreal-rr-dry-0001 -n omnifile --query properties.outputs.teamsBotAppId.value -o tsv
+az deployment group show -g rg-ofreal-rr-dry-0001 -n omnifile --query properties.outputs.identityPrincipalIds.value.web -o tsv
+az deployment group show -g rg-ofreal-rr-dry-0001 -n omnifile --query properties.outputs.identityPrincipalIds.value.worker -o tsv
+az account show --query tenantId -o tsv
+az ad app list --display-name OmniFile r04a37bf portal --query [].appId -o tsv
+az ad app create --display-name OmniFile r04a37bf portal --sign-in-audience AzureADMyOrg --web-redirect-uris https://r04a37bf-web.internal.example/auth/callback https://r04a37bf-web.internal.example/auth/azure/callback --app-roles @<tmp>/app-roles.json --optional-claims @<tmp>/optional-claims.json -o json
+az ad app update --id 0000f00d-0000-0000-0000-000000000008 --identifier-uris api://0000f00d-0000-0000-0000-000000000008 --set groupMembershipClaims=SecurityGroup
+az ad sp show --id 0000f00d-0000-0000-0000-000000000008 -o none
+az ad sp create --id 0000f00d-0000-0000-0000-000000000008 -o none
+az ad sp show --id 00000003-0000-0000-c000-000000000000 --query oauth2PermissionScopes[?value=='openid'].id | [0] -o tsv
+az ad sp show --id 00000003-0000-0000-c000-000000000000 --query oauth2PermissionScopes[?value=='profile'].id | [0] -o tsv
+az ad app permission add --id 0000f00d-0000-0000-0000-000000000008 --api 00000003-0000-0000-c000-000000000000 --api-permissions 00000000-0000-4000-9000-000000000000=Scope 00000000-0000-4000-9000-000000000001=Scope -o none
+az ad app permission admin-consent --id 0000f00d-0000-0000-0000-000000000008
+az ad sp show --id 797f4846-ba00-4fd7-ba43-dac1f8f63013 --query oauth2PermissionScopes[?value=='user_impersonation'].id | [0] -o tsv
+az ad app permission add --id 0000f00d-0000-0000-0000-000000000008 --api 797f4846-ba00-4fd7-ba43-dac1f8f63013 --api-permissions 00000000-0000-4000-9000-000000000200=Scope -o none
+az ad app federated-credential list --id 0000f00d-0000-0000-0000-000000000008 --query [?name=='omnifile-web-managed-identity'].subject | [0] -o tsv
+az ad app federated-credential create --id 0000f00d-0000-0000-0000-000000000008 --parameters @<tmp>/fic.json -o none
+az ad sp show --id 00000003-0000-0000-c000-000000000000 --query id -o tsv
+az rest --method GET --uri https://graph.microsoft.com/v1.0/servicePrincipals/44444444-5555-6666-7777-888888888888/appRoleAssignments --query value[?resourceId=='00000000-0000-4000-9000-00000000a000'].appRoleId -o tsv
+az ad sp show --id 00000003-0000-0000-c000-000000000000 --query appRoles[?value=='User.Read.All'].id | [0] -o tsv
+az rest --method POST --uri https://graph.microsoft.com/v1.0/servicePrincipals/44444444-5555-6666-7777-888888888888/appRoleAssignments --headers Content-Type=application/json --body @<tmp>/assign.json -o none
+az ad sp show --id 00000003-0000-0000-c000-000000000000 --query appRoles[?value=='GroupMember.Read.All'].id | [0] -o tsv
+az rest --method POST --uri https://graph.microsoft.com/v1.0/servicePrincipals/44444444-5555-6666-7777-888888888888/appRoleAssignments --headers Content-Type=application/json --body @<tmp>/assign.json -o none
+az ad sp show --id 00000003-0000-0000-c000-000000000000 --query appRoles[?value=='TeamsAppInstallation.ReadWriteSelfForUser.All'].id | [0] -o tsv
+az rest --method POST --uri https://graph.microsoft.com/v1.0/servicePrincipals/44444444-5555-6666-7777-888888888888/appRoleAssignments --headers Content-Type=application/json --body @<tmp>/assign.json -o none
+az rest --method GET --uri https://graph.microsoft.com/v1.0/appCatalogs/teamsApps?$filter=externalId eq '33b93fd9-0860-5b0a-8170-c1f1149a1de5' --query value[0].id -o tsv
+az rest --method POST --uri https://graph.microsoft.com/v1.0/appCatalogs/teamsApps --headers Content-Type=application/zip --body @$OUT/release/deploy/teams/out/omnifile-teams-app.zip --query id -o tsv
+az deployment group list -g rg-ofreal-rr-dry-0001 -o json
+az deployment group show -g rg-ofreal-rr-dry-0001 -n omnifile --query properties -o json
+az containerapp exec -n r04a37bf-enrol -g rg-ofreal-rr-dry-0001 --command python -m omnifile_service.enrol init-kv-ca /tmp/ca.pem
+az containerapp exec -n r04a37bf-enrol -g rg-ofreal-rr-dry-0001 --command cat /tmp/ca.pem
+az keyvault secret set --vault-name kv-r04a37bf -n api-lease-key --file lease.key -o none
+az network vnet list -g rg-ofreal-rr-dry-0001 -o json
+az network nsg create -g rg-ofreal-rr-dry-0001 -n nsg-ofreal-r04a37bf -l swedencentral --tags omnifile-run=rr-dry-0001 omnifile-expires=2026-11-03T12:00:00Z omnifile-harness=tests-real -o json
+az network nsg rule create -g rg-ofreal-rr-dry-0001 --nsg-name nsg-ofreal-r04a37bf -n ssh-from-owner --priority 100 --access Allow --protocol Tcp --direction Inbound --source-address-prefixes 192.0.2.10/32 --destination-port-ranges 22 -o json
+az network vnet subnet create -g rg-ofreal-rr-dry-0001 --vnet-name r04a37bf-vnet -n snet-ofreal-edge --address-prefixes 10.60.1.0/24 --network-security-group nsg-ofreal-r04a37bf -o json
+az vm create -g rg-ofreal-rr-dry-0001 -n vm-ofreal-r04a37bf -l swedencentral --size Standard_D8s_v5 --image Canonical:ubuntu-24_04-lts:server:latest --security-type Standard --vnet-name r04a37bf-vnet --subnet snet-ofreal-edge --nsg  --public-ip-sku Standard --admin-username omnitest --ssh-key-values <ssh key> --os-disk-size-gb 256 --assign-identity [system] --tags omnifile-run=rr-dry-0001 omnifile-expires=2026-11-03T12:00:00Z omnifile-harness=tests-real -o json
+az role assignment create --assignee-object-id 77777777-8888-9999-aaaa-bbbbbbbbbbbb --assignee-principal-type ServicePrincipal --role Reader --scope /subscriptions/00000000-0000-4000-8000-0000000000a1/resourceGroups/rg-ofreal-rr-dry-0001 -o json
+az role assignment create --assignee-object-id 77777777-8888-9999-aaaa-bbbbbbbbbbbb --assignee-principal-type ServicePrincipal --role Storage Blob Data Contributor --scope /subscriptions/00000000-0000-4000-8000-0000000000a1/resourceGroups/rg-ofreal-rr-dry-0001 -o json
+ssh omnitest@192.0.2.10 true
+ssh omnitest@192.0.2.10 mkdir -p /srv/ofreal
+scp $OUT/payload-vm.tar omnitest@192.0.2.10:/srv/ofreal/payload-vm.tar  # 70144 bytes
+ssh omnitest@192.0.2.10 mkdir -p /srv/ofreal/vm && tar -C /srv/ofreal/vm --strip-components=1 -xf /srv/ofreal/payload-vm.tar
+ssh omnitest@192.0.2.10 sudo /srv/ofreal/vm/provision.sh
+ssh omnitest@192.0.2.10 mkdir -p /srv/ofreal/release/appliance-files
+scp $OUT/omnifile-edge_0.0.0.qcow2 omnitest@192.0.2.10:/srv/ofreal/release/appliance-files/omnifile-edge_0.0.0.qcow2  # 39 bytes
+ssh omnitest@192.0.2.10 mkdir -p /srv/ofreal/release/appliance-files
+scp $OUT/release/appliance-files/SHA256SUMS omnitest@192.0.2.10:/srv/ofreal/release/appliance-files/SHA256SUMS  # 92 bytes
+ssh omnitest@192.0.2.10 mkdir -p /srv/ofreal
+scp $OUT/payload-deploy.tar omnitest@192.0.2.10:/srv/ofreal/payload-deploy.tar  # 605696 bytes
+ssh omnitest@192.0.2.10 mkdir -p /srv/ofreal/release/deploy && tar -C /srv/ofreal/release/deploy --strip-components=1 -xf /srv/ofreal/payload-deploy.tar
+ssh omnitest@192.0.2.10 sudo /srv/ofreal/vm/samba-dc.sh OFREAL.TEST  # stdin 4 lines
+ssh omnitest@192.0.2.10 mkdir -p /srv/ofreal/release
+scp $OUT/omnifile.env.vm omnitest@192.0.2.10:/srv/ofreal/release/omnifile.env  # env file, its values below
+  env-file SUBSCRIPTION_ID='00000000-0000-4000-8000-0000000000a1'
+  env-file TENANT_ID='00000000-0000-4000-8000-0000000000b1'
+  env-file LOCATION='swedencentral'
+  env-file RG='rg-ofreal-rr-dry-0001'
+  env-file PREFIX='r04a37bf'
+  env-file PARAMS='docs/guide/customer.bicepparam'
+  env-file REGISTRY='ofrealr04a37bf.azurecr.io'
+  env-file REGISTRY_NAME='ofrealr04a37bf'
+  env-file EDGE_NAME='edge-r04a37bf'
+  env-file TEAMS_SCHEMA='$REPO/tests/real/fakes/fixtures/teams-schema/1.1.3/MicrosoftTeams.schema.json'
+  env-file APPLIANCE_IMAGE='omnifile-edge_0.0.0.qcow2'
+  env-file AD_DOMAIN='ofreal.test'
+  env-file OMNI_PREFIX='r04a37bf'
+  env-file OMNI_EDGE_CIDRS='10.60.1.0/24'
+  env-file OMNI_USER_CIDRS='10.60.1.0/24'
+  env-file OMNI_ACR='ofrealr04a37bf'
+  env-file OMNI_SOURCE_REGISTRY='ofrealr04a37bf.azurecr.io'
+  env-file OMNI_RELEASE='0.0.0'
+  env-file OMNI_PG_ADMIN_GROUP='ofreal-rr-dry-0001-pg-admins'
+  env-file OMNIFILE_RUN_ID='rr-dry-0001'
+  env-file OMNIFILE_RUN_EXPIRES='2026-11-03T12:00:00Z'
+  env-file AWS_REGION=''
+  env-file EDGE_CA_FILE='edge-ca.pem'
+  env-file OMNI_TEST_RUN_ID='rr-dry-0001'
+  env-file OMNI_TEST_RUN_EXPIRES='2026-11-03T12:00Z'
+  env-file OMNI_TEST_KV_PURGE_PROTECTION='false'
+  env-file OMNI_DEPLOYMENT_SIZE='small'
+  env-file OMNI_TEST_LOCK_WORM='false'
+ssh omnitest@192.0.2.10 mkdir -p /srv/ofreal/release
+scp $OUT/release/omnifile.state.env omnitest@192.0.2.10:/srv/ofreal/release/omnifile.state.env  # env file, its values below
+  env-file OMNI_WHATIF_DIGEST='sha256:<digest>'
+  env-file OMNI_WHATIF_DIGEST='sha256:<digest>'
+ssh omnitest@192.0.2.10 cd /srv/ofreal/release && sudo bash -euo pipefail -s  # stdin 7 lines
+ssh -N -D <port> omnitest@192.0.2.10  # SOCKS tunnel for the portal
+node tests/real/portal/driver.mjs sign-in  # params sha256:<h>
+node tests/real/portal/driver.mjs guide  # params sha256:<h>
+ssh omnitest@192.0.2.10 sudo /srv/ofreal/vm/console-answers.py --domain edge-r04a37bf  # stdin 12 lines
+ssh omnitest@192.0.2.10 /srv/ofreal/vm/edge-shell.sh  # stdin 1 lines
+node tests/real/portal/driver.mjs guide  # params sha256:<h>
+ssh omnitest@192.0.2.10 mkdir -p /srv/ofreal/release
+scp $OUT/omnifile.env.vm omnitest@192.0.2.10:/srv/ofreal/release/omnifile.env  # env file, its values below
+  env-file SUBSCRIPTION_ID='00000000-0000-4000-8000-0000000000a1'
+  env-file TENANT_ID='00000000-0000-4000-8000-0000000000b1'
+  env-file LOCATION='swedencentral'
+  env-file RG='rg-ofreal-rr-dry-0001'
+  env-file PREFIX='r04a37bf'
+  env-file PARAMS='docs/guide/customer.bicepparam'
+  env-file REGISTRY='ofrealr04a37bf.azurecr.io'
+  env-file REGISTRY_NAME='ofrealr04a37bf'
+  env-file EDGE_NAME='edge-r04a37bf'
+  env-file TEAMS_SCHEMA='$REPO/tests/real/fakes/fixtures/teams-schema/1.1.3/MicrosoftTeams.schema.json'
+  env-file APPLIANCE_IMAGE='omnifile-edge_0.0.0.qcow2'
+  env-file AD_DOMAIN='ofreal.test'
+  env-file OMNI_PREFIX='r04a37bf'
+  env-file OMNI_EDGE_CIDRS='10.60.1.0/24'
+  env-file OMNI_USER_CIDRS='10.60.1.0/24'
+  env-file OMNI_ACR='ofrealr04a37bf'
+  env-file OMNI_SOURCE_REGISTRY='ofrealr04a37bf.azurecr.io'
+  env-file OMNI_RELEASE='0.0.0'
+  env-file OMNI_PG_ADMIN_GROUP='ofreal-rr-dry-0001-pg-admins'
+  env-file OMNIFILE_RUN_ID='rr-dry-0001'
+  env-file OMNIFILE_RUN_EXPIRES='2026-11-03T12:00:00Z'
+  env-file AWS_REGION=''
+  env-file EDGE_CA_FILE='edge-ca.pem'
+  env-file OMNI_TEST_RUN_ID='rr-dry-0001'
+  env-file OMNI_TEST_RUN_EXPIRES='2026-11-03T12:00Z'
+  env-file OMNI_TEST_KV_PURGE_PROTECTION='false'
+  env-file OMNI_DEPLOYMENT_SIZE='small'
+  env-file OMNI_TEST_LOCK_WORM='false'
+ssh omnitest@192.0.2.10 mkdir -p /srv/ofreal/release
+scp $OUT/release/omnifile.state.env omnitest@192.0.2.10:/srv/ofreal/release/omnifile.state.env  # env file, its values below
+  env-file OMNI_WHATIF_DIGEST='sha256:<digest>'
+  env-file OMNI_WHATIF_DIGEST='sha256:<digest>'
+ssh omnitest@192.0.2.10 cd /srv/ofreal/release && bash -euo pipefail -s  # stdin 4 lines
+az deployment group list -g rg-ofreal-rr-dry-0001 -o json
+az deployment group show -g rg-ofreal-rr-dry-0001 -n omnifile --query properties -o json
+az deployment group what-if --resource-group rg-ofreal-rr-dry-0001 --name omnifile --template-file <tmp>/template.json --parameters @<tmp>/parameters.json --no-pretty-print --output json
+env OMNIFILE_RUN_EXPIRES=2026-11-03T12:00:00Z OMNIFILE_RUN_ID=rr-dry-0001 OMNIFILE_TEST_ENROL_CIDRS=10.60.1.0/24 OMNIFILE_TEST_PG_ADMIN_CIDRS=10.60.1.0/24 OMNIFILE_TEST_PG_ADMIN_NAME=ofreal-rr-dry-0001-pg-admins OMNIFILE_TEST_PG_ADMIN_OID=0000f00d-0000-0000-0000-000000000001 OMNIFILE_TEST_PREFIX=r04a37bf OMNIFILE_TEST_REGISTRY=ofrealr04a37bf.azurecr.io OMNIFILE_TEST_REGISTRY_ID=/subscriptions/00000000-0000-4000-8000-0000000000a1/resourceGroups/rg-ofreal-rr-dry-0001/providers/Microsoft.ContainerRegistry/registries/ofrealr04a37bf OMNIFILE_TEST_UPLOADER_OID=00000000-0000-4000-8000-0000000000c1 OMNIFILE_TEST_WEB_CIDRS=10.60.1.0/24 OMNI_ACR=ofrealr04a37bf OMNI_DEPLOYMENT_SIZE=small OMNI_EDGE_CIDRS=10.60.1.0/24 OMNI_PG_ADMIN_GROUP=ofreal-rr-dry-0001-pg-admins OMNI_PREFIX=r04a37bf OMNI_RELEASE=0.0.0 OMNI_SOURCE_REGISTRY=ofrealr04a37bf.azurecr.io OMNI_TEST_ALERTS=false OMNI_TEST_API_MAX_REPLICAS= OMNI_TEST_API_MIN_REPLICAS= OMNI_TEST_BLOB_SOFT_DELETE_DAYS=1 OMNI_TEST_HUB_NO_GATEWAY=1 OMNI_TEST_KV_PURGE_PROTECTION=false OMNI_TEST_KV_SOFT_DELETE_DAYS=7 OMNI_TEST_LOCK_WORM=false OMNI_TEST_PG_SKU_NAME= OMNI_TEST_PG_SKU_TIER= OMNI_TEST_PG_STORAGE_GB= OMNI_TEST_RUN_EXPIRES=2026-11-03T12:00Z OMNI_TEST_RUN_ID=rr-dry-0001 OMNI_TEST_UID=20002 OMNI_TEST_USER=geo-writer OMNI_TEST_WORKER_MAX_REPLICAS= OMNI_TEST_WORM_RETENTION_DAYS=1 OMNI_USER_CIDRS=10.60.1.0/24 OMNI_WHATIF_DIGEST=sha256:<digest>  # what the parameters read
+az deployment group list -g rg-ofreal-rr-dry-0001 -o json
+az deployment group show -g rg-ofreal-rr-dry-0001 -n omnifile --query properties -o json
+az deployment group what-if --resource-group rg-ofreal-rr-dry-0001 --name omnifile --template-file <tmp>/template.json --parameters @<tmp>/parameters.json --no-pretty-print --output json
+env OMNIFILE_RUN_EXPIRES=2026-11-03T12:00:00Z OMNIFILE_RUN_ID=rr-dry-0001 OMNIFILE_TEST_ENROL_CIDRS=10.60.1.0/24 OMNIFILE_TEST_PG_ADMIN_CIDRS=10.60.1.0/24 OMNIFILE_TEST_PG_ADMIN_NAME=ofreal-rr-dry-0001-pg-admins OMNIFILE_TEST_PG_ADMIN_OID=0000f00d-0000-0000-0000-000000000001 OMNIFILE_TEST_PREFIX=r04a37bf OMNIFILE_TEST_REGISTRY=ofrealr04a37bf.azurecr.io OMNIFILE_TEST_REGISTRY_ID=/subscriptions/00000000-0000-4000-8000-0000000000a1/resourceGroups/rg-ofreal-rr-dry-0001/providers/Microsoft.ContainerRegistry/registries/ofrealr04a37bf OMNIFILE_TEST_UPLOADER_OID=00000000-0000-4000-8000-0000000000c1 OMNIFILE_TEST_WEB_CIDRS=10.60.1.0/24 OMNI_ACR=ofrealr04a37bf OMNI_DEPLOYMENT_SIZE=small OMNI_EDGE_CIDRS=10.60.1.0/24 OMNI_PG_ADMIN_GROUP=ofreal-rr-dry-0001-pg-admins OMNI_PREFIX=r04a37bf OMNI_RELEASE=0.0.0 OMNI_SOURCE_REGISTRY=ofrealr04a37bf.azurecr.io OMNI_TEST_ALERTS=false OMNI_TEST_API_MAX_REPLICAS= OMNI_TEST_API_MIN_REPLICAS= OMNI_TEST_BLOB_SOFT_DELETE_DAYS=1 OMNI_TEST_HUB_NO_GATEWAY=1 OMNI_TEST_KV_PURGE_PROTECTION=false OMNI_TEST_KV_SOFT_DELETE_DAYS=7 OMNI_TEST_LOCK_WORM=false OMNI_TEST_PG_SKU_NAME= OMNI_TEST_PG_SKU_TIER= OMNI_TEST_PG_STORAGE_GB= OMNI_TEST_RUN_EXPIRES=2026-11-03T12:00Z OMNI_TEST_RUN_ID=rr-dry-0001 OMNI_TEST_UID=20002 OMNI_TEST_USER=geo-writer OMNI_TEST_WORKER_MAX_REPLICAS= OMNI_TEST_WORM_RETENTION_DAYS=1 OMNI_USER_CIDRS=10.60.1.0/24 OMNI_WHATIF_DIGEST=sha256:<digest>  # what the parameters read
+az deployment group create --resource-group rg-ofreal-rr-dry-0001 --name omnifile --template-file <tmp>/template.json --parameters @<tmp>/parameters.json --output json
+env OMNIFILE_RUN_EXPIRES=2026-11-03T12:00:00Z OMNIFILE_RUN_ID=rr-dry-0001 OMNIFILE_TEST_ENROL_CIDRS=10.60.1.0/24 OMNIFILE_TEST_PG_ADMIN_CIDRS=10.60.1.0/24 OMNIFILE_TEST_PG_ADMIN_NAME=ofreal-rr-dry-0001-pg-admins OMNIFILE_TEST_PG_ADMIN_OID=0000f00d-0000-0000-0000-000000000001 OMNIFILE_TEST_PREFIX=r04a37bf OMNIFILE_TEST_REGISTRY=ofrealr04a37bf.azurecr.io OMNIFILE_TEST_REGISTRY_ID=/subscriptions/00000000-0000-4000-8000-0000000000a1/resourceGroups/rg-ofreal-rr-dry-0001/providers/Microsoft.ContainerRegistry/registries/ofrealr04a37bf OMNIFILE_TEST_UPLOADER_OID=00000000-0000-4000-8000-0000000000c1 OMNIFILE_TEST_WEB_CIDRS=10.60.1.0/24 OMNI_ACR=ofrealr04a37bf OMNI_DEPLOYMENT_SIZE=small OMNI_EDGE_CIDRS=10.60.1.0/24 OMNI_PG_ADMIN_GROUP=ofreal-rr-dry-0001-pg-admins OMNI_PREFIX=r04a37bf OMNI_RELEASE=0.0.0 OMNI_SOURCE_REGISTRY=ofrealr04a37bf.azurecr.io OMNI_TEST_ALERTS=false OMNI_TEST_API_MAX_REPLICAS= OMNI_TEST_API_MIN_REPLICAS= OMNI_TEST_BLOB_SOFT_DELETE_DAYS=1 OMNI_TEST_HUB_NO_GATEWAY=1 OMNI_TEST_KV_PURGE_PROTECTION=false OMNI_TEST_KV_SOFT_DELETE_DAYS=7 OMNI_TEST_LOCK_WORM=false OMNI_TEST_PG_SKU_NAME= OMNI_TEST_PG_SKU_TIER= OMNI_TEST_PG_STORAGE_GB= OMNI_TEST_RUN_EXPIRES=2026-11-03T12:00Z OMNI_TEST_RUN_ID=rr-dry-0001 OMNI_TEST_UID=20002 OMNI_TEST_USER=geo-writer OMNI_TEST_WORKER_MAX_REPLICAS= OMNI_TEST_WORM_RETENTION_DAYS=1 OMNI_USER_CIDRS=10.60.1.0/24 OMNI_WHATIF_DIGEST=sha256:<digest>  # what the parameters read
+az ad app list --filter tags/any(t:t eq 'omnifile-run:rr-dry-0001') -o json
+az ad app list --filter startswith(displayName,'OmniFile r04a37bf ') -o json
+az ad app list --filter startswith(displayName,'r04a37bf-') -o json
+az rest --method patch --url https://graph.microsoft.com/v1.0/applications/0000f00d-0000-0000-0000-000000000007 --body {"tags": ["omnifile-harness:tests-real", "omnifile-run:rr-dry-0001"]} -o json
+az account show -o json
+az account show -o json
+ssh -N -D <port> omnitest@192.0.2.10  # SOCKS tunnel for the portal
+node tests/real/portal/driver.mjs sign-in  # params sha256:<h>
+node tests/real/portal/driver.mjs exit-edge-enrolled  # params sha256:<h>
+ssh omnitest@192.0.2.10 sudo /srv/ofreal/vm/exit.sh nfs3-write  # exit step nfs3-write
+ssh omnitest@192.0.2.10 sudo /srv/ofreal/vm/exit.sh nfs4-write  # exit step nfs4-write
+ssh omnitest@192.0.2.10 sudo /srv/ofreal/vm/exit.sh smb-write  # exit step smb-write
+node tests/real/portal/driver.mjs exit-uploaded  # params sha256:<h>
+ssh omnitest@192.0.2.10 sudo /srv/ofreal/vm/exit.sh stubbed  # exit step stubbed
+ssh omnitest@192.0.2.10 sudo /srv/ofreal/vm/exit.sh read-back  # exit step read-back
+node tests/real/portal/driver.mjs exit-pin-archive  # params sha256:<h>
+ssh omnitest@192.0.2.10 sudo /srv/ofreal/vm/exit.sh archived  # exit step archived
+node tests/real/portal/driver.mjs exit-recall-high  # params sha256:<h>
+ssh omnitest@192.0.2.10 sudo /srv/ofreal/vm/exit.sh recalled  # exit step recalled
+node tests/real/portal/driver.mjs exit-worm-share  # params sha256:<h>
+node tests/real/portal/driver.mjs exit-worm-enable  # params sha256:<h>
+ssh omnitest@192.0.2.10 sudo /srv/ofreal/vm/exit.sh worm-write  # exit step worm-write
+node tests/real/portal/driver.mjs exit-worm-retained  # params sha256:<h>
+ssh omnitest@192.0.2.10 sudo /srv/ofreal/vm/exit.sh worm-immutable  # exit step worm-immutable
+az account show -o json
+az account show -o json
+ssh omnitest@192.0.2.10 sudo -u omnitest /srv/ofreal/venv/bin/python /srv/ofreal/vm/azure_checks.py RA-01  # stdin 1 lines
+ssh omnitest@192.0.2.10 sudo -u omnitest /srv/ofreal/venv/bin/python /srv/ofreal/vm/azure_checks.py RA-02  # stdin 1 lines
+ssh omnitest@192.0.2.10 sudo -u omnitest /srv/ofreal/venv/bin/python /srv/ofreal/vm/azure_checks.py RA-03  # stdin 1 lines
+ssh omnitest@192.0.2.10 sudo -u omnitest /srv/ofreal/venv/bin/python /srv/ofreal/vm/azure_checks.py RA-07  # stdin 1 lines
+ssh omnitest@192.0.2.10 sudo -u omnitest /srv/ofreal/venv/bin/python /srv/ofreal/vm/azure_checks.py RA-08  # stdin 1 lines
+ssh omnitest@192.0.2.10 sudo -u omnitest /srv/ofreal/venv/bin/python /srv/ofreal/vm/azure_checks.py RA-09  # stdin 1 lines
+ssh omnitest@192.0.2.10 sudo -u omnitest /srv/ofreal/venv/bin/python /srv/ofreal/vm/azure_checks.py RA-10  # stdin 1 lines
+ssh omnitest@192.0.2.10 sudo -u omnitest /srv/ofreal/venv/bin/python /srv/ofreal/vm/azure_checks.py RA-11  # stdin 1 lines
+ssh omnitest@192.0.2.10 sudo -u omnitest /srv/ofreal/venv/bin/python /srv/ofreal/vm/azure_checks.py RA-12  # stdin 1 lines
+ssh omnitest@192.0.2.10 sudo -u omnitest /srv/ofreal/venv/bin/python /srv/ofreal/vm/azure_checks.py RA-13  # stdin 1 lines
+az account get-access-token --resource-type oss-rdbms -o json
+ssh omnitest@192.0.2.10 sudo -u omnitest /srv/ofreal/venv/bin/python /srv/ofreal/vm/azure_checks.py RA-28  # stdin 1 lines
+az account get-access-token --resource-type oss-rdbms -o json
+ssh omnitest@192.0.2.10 sudo -u omnitest /srv/ofreal/venv/bin/python /srv/ofreal/vm/azure_checks.py RA-29  # stdin 1 lines
+az containerapp exec -n r04a37bf-api -g rg-ofreal-rr-dry-0001 --command python -c "import base64,sys;sys.argv=['t5','https://r04a37bf-api.internal.example:8443'];exec(base64.b64decode('CmltcG9ydCBqc29uLCBzb2NrZXQsIHNzbCwgc3lzLCB1cmxsaWIucGFyc2UKdSA9IHVybGxpYi5wYXJzZS51cmxzcGxpdChzeXMuYXJndlsxXSkKaG9zdCwgcG9ydCA9IHUuaG9zdG5hbWUsIHUucG9ydCBvciA0NDMKZGVmIGF0dGVtcHQoaGVhZGVycyk6CiAgICBjID0gc3NsLmNyZWF0ZV9kZWZhdWx0X2NvbnRleHQoKQogICAgYy5jaGVja19ob3N0bmFtZSA9IEZhbHNlCiAgICBjLnZlcmlmeV9tb2RlID0gc3NsLkNFUlRfTk9ORQogICAgdHJ5OgogICAgICAgIHdpdGggc29ja2V0LmNyZWF0ZV9jb25uZWN0aW9uKChob3N0LCBwb3J0KSwgdGltZW91dD0xNSkgYXMgcmF3OgogICAgICAgICAgICB3aXRoIGMud3JhcF9zb2NrZXQocmF3LCBzZXJ2ZXJfaG9zdG5hbWU9aG9zdCkgYXMgdDoKICAgICAgICAgICAgICAgIHJlcSA9ICJHRVQgL3YwL2VkZ2VzL3NlbGYgSFRUUC8xLjFcclxuSG9zdDogJXNcclxuJXNDb25uZWN0aW9uOiBjbG9zZVxyXG5cclxuIiAlICgKICAgICAgICAgICAgICAgICAgICBob3N0LCAiIi5qb2luKCIlczogJXNcclxuIiAlIGt2IGZvciBrdiBpbiBoZWFkZXJzLml0ZW1zKCkpKQogICAgICAgICAgICAgICAgdC5zZW5kYWxsKHJlcS5lbmNvZGUoKSkKICAgICAgICAgICAgICAgIGZpcnN0ID0gdC5yZWN2KDQwOTYpLmRlY29kZShlcnJvcnM9InJlcGxhY2UiKS5zcGxpdCgiXHJcbiIsIDEpWzBdCiAgICAgICAgICAgICAgICByZXR1cm4geyJ0bHMiOiAiYWNjZXB0ZWQiLCAic3RhdHVzIjogaW50KGZpcnN0LnNwbGl0KClbMV0pIGlmIGZpcnN0IGVsc2UgMH0KICAgIGV4Y2VwdCBzc2wuU1NMRXJyb3IgYXMgZToKICAgICAgICByZXR1cm4geyJ0bHMiOiAicmVmdXNlZCIsICJlcnJvciI6IHR5cGUoZSkuX19uYW1lX199CiAgICBleGNlcHQgKENvbm5lY3Rpb25FcnJvciwgT1NFcnJvcikgYXMgZToKICAgICAgICByZXR1cm4geyJ0bHMiOiAicmVmdXNlZCIsICJlcnJvciI6IHR5cGUoZSkuX19uYW1lX199CnByaW50KCJvZnJlYWwtdDUtcHJvYmUgIiArIGpzb24uZHVtcHMoewogICAgIm5vX2NsaWVudF9jZXJ0IjogYXR0ZW1wdCh7fSksCiAgICAiZm9yZ2VkX3hmY2MiOiBhdHRlbXB0KHsiWC1Gb3J3YXJkZWQtQ2xpZW50LUNlcnQiOiAiSGFzaD0wMDtDZXJ0PWZvcmdlZDtTdWJqZWN0PUNOPW9tbmlmaWxlLWVkZ2UtdmljdGltIn0pLAp9KSkK'))"
+ssh omnitest@192.0.2.10 sudo -u omnitest /srv/ofreal/venv/bin/python /srv/ofreal/vm/azure_checks.py RA-32  # stdin 1 lines
+az storage account list -g rg-ofreal-rr-dry-0001 -o json
+az storage container immutability-policy show -g rg-ofreal-rr-dry-0001 --account-name str04a37bfwtst -c data -o json
+az monitor app-insights query --apps /subscriptions/x/resourceGroups/y/providers/Microsoft.Insights/components/appi-r04a37bf --analytics-query AppMetrics | where TimeGenerated > ago(2h) | summarize n=count() by Name -o json
+az account show -o json
+az account show -o json
+az group list --tag omnifile-run=rr-dry-0001 -o json
+az group show -n rg-ofreal-rr-dry-0001 -o json
+az keyvault list -g rg-ofreal-rr-dry-0001 -o json
+az lock list -g rg-ofreal-rr-dry-0001 -o json
+az storage account list -g rg-ofreal-rr-dry-0001 -o json
+az storage account update -g rg-ofreal-rr-dry-0001 -n str04a37bfwtst --public-network-access Enabled --default-action Deny -o json
+az storage account network-rule add -g rg-ofreal-rr-dry-0001 --account-name str04a37bfwtst --ip-address 192.0.2.10/32 -o json
+az role assignment create --assignee-object-id 00000000-0000-4000-8000-0000000000c1 --assignee-principal-type User --role Storage Blob Data Owner --scope /subscriptions/00000000-0000-4000-8000-0000000000a1/resourceGroups/rg-ofreal-rr-dry-0001/providers/Microsoft.Storage/storageAccounts/str04a37bfwtst -o json
+az storage container list --account-name str04a37bfwtst --auth-mode login -o json
+az storage container immutability-policy show -g rg-ofreal-rr-dry-0001 --account-name str04a37bfwtst -c data -o json
+az storage container immutability-policy delete -g rg-ofreal-rr-dry-0001 --account-name str04a37bfwtst -c data --if-match "0000f00d-0000-0000-0000-000000000002" -o json
+az storage container legal-hold show -g rg-ofreal-rr-dry-0001 --account-name str04a37bfwtst -c data -o json
+az storage blob list --account-name str04a37bfwtst -c data --auth-mode login --include v -o json
+az storage blob show --account-name str04a37bfwtst -c data -n worm/ledger.segy --version-id <v> --auth-mode login -o json
+az storage blob immutability-policy delete --account-name str04a37bfwtst -c data -n worm/ledger.segy --version-id <v> --auth-mode login -o json
+az storage blob set-legal-hold --account-name str04a37bfwtst -c data -n worm/ledger.segy --version-id <v> --legal-hold false --auth-mode login -o json
+az storage blob show --account-name str04a37bfwtst -c data -n worm/ledger.segy --version-id <v> --auth-mode login -o json
+az storage blob immutability-policy delete --account-name str04a37bfwtst -c data -n worm/ledger.segy --version-id <v> --auth-mode login -o json
+az storage container immutability-policy show -g rg-ofreal-rr-dry-0001 --account-name str04a37bfwtst -c omnifile-exports -o json
+az storage container legal-hold show -g rg-ofreal-rr-dry-0001 --account-name str04a37bfwtst -c omnifile-exports -o json
+az storage blob list --account-name str04a37bfwtst -c omnifile-exports --auth-mode login --include v -o json
+az storage container immutability-policy show -g rg-ofreal-rr-dry-0001 --account-name str04a37bfwtst -c recall -o json
+az storage container legal-hold show -g rg-ofreal-rr-dry-0001 --account-name str04a37bfwtst -c recall -o json
+az storage blob list --account-name str04a37bfwtst -c recall --auth-mode login --include v -o json
+az group delete -n rg-ofreal-rr-dry-0001 --yes
+az role definition list --custom-role-only true --scope /subscriptions/00000000-0000-4000-8000-0000000000a1 -o json
+az role definition delete --name 0000f00d-0000-0000-0000-000000000003 --scope /subscriptions/00000000-0000-4000-8000-0000000000a1/resourceGroups/rg-ofreal-rr-dry-0001
+az role definition delete --name 0000f00d-0000-0000-0000-000000000004 --scope /subscriptions/00000000-0000-4000-8000-0000000000a1/resourceGroups/rg-ofreal-rr-dry-0001
+az role definition delete --name 0000f00d-0000-0000-0000-000000000005 --scope /subscriptions/00000000-0000-4000-8000-0000000000a1/resourceGroups/rg-ofreal-rr-dry-0001
+az role definition delete --name 0000f00d-0000-0000-0000-000000000006 --scope /subscriptions/00000000-0000-4000-8000-0000000000a1/resourceGroups/rg-ofreal-rr-dry-0001
+az keyvault list-deleted --resource-type vault -o json
+az keyvault purge -n kv-r04a37bf -l swedencentral
+az ad app list --filter tags/any(t:t eq 'omnifile-run:rr-dry-0001') -o json
+az ad app list --filter startswith(displayName,'OmniFile r04a37bf ') -o json
+az ad app list --filter startswith(displayName,'r04a37bf-') -o json
+az ad app delete --id 0000f00d-0000-0000-0000-000000000007
+az rest --method get --url https://graph.microsoft.com/v1.0/appCatalogs/teamsApps/0000f00d-0000-0000-0000-00000000000a -o json
+az rest --method get --url https://graph.microsoft.com/v1.0/appCatalogs/teamsApps?$filter=externalId eq '33b93fd9-0860-5b0a-8170-c1f1149a1de5' -o json
+az rest --method delete --url https://graph.microsoft.com/v1.0/appCatalogs/teamsApps/0000f00d-0000-0000-0000-00000000000a
+az ad group list --filter startswith(displayName,'ofreal-rr-dry-0001-') -o json
+az ad group delete --group 0000f00d-0000-0000-0000-000000000001
+az group list --tag omnifile-run=rr-dry-0001 -o json
+az group show -n rg-ofreal-rr-dry-0001 -o json
+az resource list --tag omnifile-run=rr-dry-0001 -o json
+az role definition list --custom-role-only true --scope /subscriptions/00000000-0000-4000-8000-0000000000a1 -o json
+az keyvault list-deleted --resource-type vault -o json
+az ad app list --filter tags/any(t:t eq 'omnifile-run:rr-dry-0001') -o json
+az ad app list --filter startswith(displayName,'OmniFile r04a37bf ') -o json
+az ad app list --filter startswith(displayName,'r04a37bf-') -o json
+az ad app show --id 0000f00d-0000-0000-0000-000000000008 -o json
+az rest --method get --url https://graph.microsoft.com/v1.0/appCatalogs/teamsApps/0000f00d-0000-0000-0000-00000000000a -o json
+az rest --method get --url https://graph.microsoft.com/v1.0/appCatalogs/teamsApps?$filter=externalId eq '33b93fd9-0860-5b0a-8170-c1f1149a1de5' -o json
+az ad group list --filter startswith(displayName,'ofreal-rr-dry-0001-') -o json

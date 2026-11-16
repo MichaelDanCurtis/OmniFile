@@ -1,0 +1,29 @@
+# Permission-matrix VM for tests/acl: a second edge-like box (hostname acl1,
+# NetBIOS ACL1) joined to the dev AD in omnifile-dc. It is separate from
+# omnifile-edge so the matrix can install its own smb.conf and Ganesha exports
+# without touching the integration VM. Start it with tests/acl/vm/up.sh.
+minimumLimaVersion: 2.0.0
+base:
+- template:_images/ubuntu-26.04
+vmType: vz
+cpus: 4
+memory: 6GiB
+disk: 60GiB
+# The repo mount (/work, read-only) is added by tests/acl/vm/up.sh with --set.
+mounts: []
+networks:
+- lima: user-v2
+containerd:
+  system: false
+  user: false
+portForwards:
+- guestPortRange: [1, 65535]
+  ignore: true
+provision:
+- mode: user
+  script: |
+    #!/bin/bash
+    set -eu
+    if [ ! -x "$HOME/.cargo/bin/rustup" ]; then
+      curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal -c rustfmt -c clippy >/dev/null
+    fi

@@ -1,0 +1,24 @@
+account show --query tenantId -o tsv
+ad app list --display-name OmniFile omni portal --query [].appId -o tsv
+ad app create --display-name OmniFile omni portal --sign-in-audience AzureADMyOrg --web-redirect-uris https://omni-web.example.test/auth/callback https://omni-web.example.test/auth/azure/callback --app-roles @<tmp>/app-roles.json --optional-claims @<tmp>/optional-claims.json -o json
+ad app update --id aaaaaaaa-0000-0000-0000-000000000001 --identifier-uris api://aaaaaaaa-0000-0000-0000-000000000001 --set groupMembershipClaims=SecurityGroup
+ad sp show --id aaaaaaaa-0000-0000-0000-000000000001 -o none
+ad sp create --id aaaaaaaa-0000-0000-0000-000000000001 -o none
+ad sp show --id 00000003-0000-0000-c000-000000000000 --query oauth2PermissionScopes[?value=='openid'].id | [0] -o tsv
+ad sp show --id 00000003-0000-0000-c000-000000000000 --query oauth2PermissionScopes[?value=='profile'].id | [0] -o tsv
+ad app permission add --id aaaaaaaa-0000-0000-0000-000000000001 --api 00000003-0000-0000-c000-000000000000 --api-permissions 37f7f235-0000-0000-0000-000000000001=Scope 14dad69e-0000-0000-0000-000000000002=Scope -o none
+ad app permission admin-consent --id aaaaaaaa-0000-0000-0000-000000000001
+ad sp show --id 797f4846-ba00-4fd7-ba43-dac1f8f63013 --query oauth2PermissionScopes[?value=='user_impersonation'].id | [0] -o tsv
+ad app permission add --id aaaaaaaa-0000-0000-0000-000000000001 --api 797f4846-ba00-4fd7-ba43-dac1f8f63013 --api-permissions 41094075-0000-0000-0000-000000000006=Scope -o none
+ad app federated-credential list --id aaaaaaaa-0000-0000-0000-000000000001 --query [?name=='omnifile-web-managed-identity'].subject | [0] -o tsv
+ad app federated-credential create --id aaaaaaaa-0000-0000-0000-000000000001 --parameters @<tmp>/fic.json -o none
+ad sp show --id 00000003-0000-0000-c000-000000000000 --query id -o tsv
+rest --method GET --uri https://graph.microsoft.com/v1.0/servicePrincipals/22222222-0000-0000-0000-00000000000b/appRoleAssignments --query value[?resourceId=='99999999-0000-0000-0000-00000000aaaa'].appRoleId -o tsv
+ad sp show --id 00000003-0000-0000-c000-000000000000 --query appRoles[?value=='User.Read.All'].id | [0] -o tsv
+rest --method POST --uri https://graph.microsoft.com/v1.0/servicePrincipals/22222222-0000-0000-0000-00000000000b/appRoleAssignments --headers Content-Type=application/json --body @<tmp>/assign.json -o none
+ad sp show --id 00000003-0000-0000-c000-000000000000 --query appRoles[?value=='GroupMember.Read.All'].id | [0] -o tsv
+rest --method POST --uri https://graph.microsoft.com/v1.0/servicePrincipals/22222222-0000-0000-0000-00000000000b/appRoleAssignments --headers Content-Type=application/json --body @<tmp>/assign.json -o none
+ad sp show --id 00000003-0000-0000-c000-000000000000 --query appRoles[?value=='TeamsAppInstallation.ReadWriteSelfForUser.All'].id | [0] -o tsv
+rest --method POST --uri https://graph.microsoft.com/v1.0/servicePrincipals/22222222-0000-0000-0000-00000000000b/appRoleAssignments --headers Content-Type=application/json --body @<tmp>/assign.json -o none
+rest --method GET --uri https://graph.microsoft.com/v1.0/appCatalogs/teamsApps?$filter=externalId eq 'd2d0491c-d8c7-5073-8cc3-1d5b6ddeb5c6' --query value[0].id -o tsv
+rest --method POST --uri https://graph.microsoft.com/v1.0/appCatalogs/teamsApps --headers Content-Type=application/zip --body @<tmp>/omnifile-teams-app.zip --query id -o tsv

@@ -1,0 +1,35 @@
+# Dev Samba AD domain controller (OMNI.TEST / OMNI). Stands in for the client's
+# on-prem AD. Use dev/up.sh, which also mounts the repo (read-only) at /work.
+minimumLimaVersion: 2.0.0
+base:
+- template:_images/ubuntu-26.04
+vmType: vz
+cpus: 2
+memory: 2GiB
+disk: 20GiB
+# The repo mount (/work) is added by dev/up.sh with --set.
+mounts: []
+# user-v2: a rootless Lima network shared by both dev VMs (VM-to-VM by IP, and
+# the guest can still reach the internet). No socket_vmnet / sudo needed.
+networks:
+- lima: user-v2
+# No container runtime: Lima would otherwise download nerdctl-full on first boot.
+containerd:
+  system: false
+  user: false
+# Do not auto-forward guest ports (Samba's 445/139/53/88/389 would collide with
+# other VMs and with macOS itself). Reach VMs via `limactl shell` or user-v2 IPs.
+portForwards:
+- guestPortRange: [1, 65535]
+  ignore: true
+provision:
+- mode: system
+  script: |
+    #!/bin/bash
+    set -eu
+    if [ -x /work/dev/scripts/dc-provision.sh ]; then
+      /work/dev/scripts/dc-provision.sh
+    else
+      echo "/work is not mounted: start this VM with dev/up.sh" >&2
+      exit 1
+    fi

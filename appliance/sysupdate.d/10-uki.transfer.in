@@ -1,0 +1,27 @@
+# systemd-sysupdate: a new version's UKI, into the ESP with boot counting (3 tries).
+# The source URL is the image's update feed, which build.sh writes in from --feed-url
+# (default: the GitHub Releases of release.conf's RELEASE_REPO, latest release; owner
+# decision B). The setup wizard can point a box elsewhere with a drop-in at
+# /etc/sysupdate.d/10-uki.transfer.d/10-omnifile-feed.conf ([Source] Path=https://...).
+# Every feed is checked against the image's keyring before anything is installed.
+[Transfer]
+ProtectVersion=%A
+
+[Source]
+Type=url-file
+Path=@FEED_URL@
+MatchPattern=omnifile-edge_@v.efi
+
+[Target]
+Type=regular-file
+Path=/EFI/Linux
+PathRelativeTo=boot
+MatchPattern=omnifile-edge_@v+@l-@d.efi \
+             omnifile-edge_@v+@l.efi \
+             omnifile-edge_@v.efi
+# Not 0444: on the ESP (FAT) that sets the read-only attribute, and systemd-boot then
+# can't rename the file to count a try ("Access denied"), so counting never starts.
+Mode=0644
+TriesLeft=3
+TriesDone=0
+InstancesMax=2

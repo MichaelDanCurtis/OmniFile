@@ -1,0 +1,23 @@
+[package]
+name = "omnifile-replica"
+description = "OmniFile Gateway edge metadata replica: SQLite (WAL) copy of the catalog rows the edge serves, fed by the control-API feed (docs/design/edge-metadata.md)"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+# SQLite with the library compiled in (no system libsqlite3). rusqlite: MIT; SQLite: public domain.
+rusqlite = { version = "0.40", features = ["bundled"] }
+# Feed events arrive as raw JSON (control-api §5). MIT OR Apache-2.0.
+serde_json = "1"
+# Error types. MIT OR Apache-2.0.
+thiserror = "2"
+# Structured logging. MIT.
+tracing = "0.1"
+# SHA-256 for the reconciliation digest (control API §6). Apache-2.0 AND ISC.
+ring = "0.17"
+
+[dev-dependencies]
+tempfile = "3"
+proptest = "1"

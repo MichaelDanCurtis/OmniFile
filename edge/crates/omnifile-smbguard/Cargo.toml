@@ -1,0 +1,51 @@
+[package]
+name = "omnifile-smbguard"
+description = "OmniFile Gateway smb-guard: the fail-closed fanotify pre-content guard for SMB and local reads of stubs (docs/pilots/filer-spike-results-A.md, recommended design)"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+# Standalone guard with a file-backed recall broker. It runs the production
+# library under the production unit (edge/systemd) for the A-suite; the
+# appliance runs the guard inside omnifile-edge instead (M2 integration).
+[[bin]]
+name = "omnifile-smbguard-harness"
+path = "src/bin/harness.rs"
+
+# Test helper: stubs with real trusted.omnifile markers, verified reads by
+# several methods, floods (the spike's omnitool, ported).
+[[bin]]
+name = "smbguard-tool"
+path = "src/bin/tool.rs"
+
+# Ops interlock: refuses disable / clean --what=fdstore / uninstall of the
+# guard unit while smbd or Ganesha run.
+[[bin]]
+name = "omnifile-guardctl"
+path = "src/bin/guardctl.rs"
+
+[dependencies]
+# The 64-byte trusted.omnifile marker (docs/contracts/fsal-socket.md §8). BUSL-1.1 (ours).
+omnifile-marker = { path = "../omnifile-marker" }
+# InodeKey, the SmbGuardHook trait of the stub handshake, and (harness only)
+# the production fill path. BUSL-1.1 (ours).
+omnifile-stub = { path = "../omnifile-stub" }
+# CRC-64/NVME of the harness's synthetic content (a fill needs the catalog's
+# whole-file CRC to verify against). BUSL-1.1 (ours).
+omnifile-integrity = { path = "../omnifile-integrity" }
+# Raw syscalls: fanotify, handles, statx, ioctls, sd_notify. MIT OR Apache-2.0.
+libc = "0.2"
+# Error types. MIT OR Apache-2.0.
+thiserror = "2"
+# Structured logging. MIT.
+tracing = "0.1"
+# Log output for the harness binary (the daemon installs its own). MIT.
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
+
+[dev-dependencies]
+# Temporary journal files in unit tests. MIT OR Apache-2.0.
+tempfile = "3"

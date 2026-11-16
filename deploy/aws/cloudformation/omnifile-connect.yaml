@@ -1,0 +1,438 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  OmniFile Gateway, Connect AWS (docs/design/cloud-connect.md section 2). The role the OmniFile
+  service assumes with its Entra web identity (no keys, decision 43), read-only on the source
+  buckets with every write denied everywhere but its own ops bucket (decision 40), the S3 event
+  queue and rule, the Batch Operations role and the operations bucket. Optional interface
+  endpoints for private networking (decision 22), each with a least-privilege policy.
+
+Metadata:
+  OmniFile:
+    # The service checks this file is byte-identical to its packaged copy.
+    TemplateVersion: "3"
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label: { default: "This OmniFile deployment (filled in by the portal)" }
+        Parameters: [TenantId, Audience, ServiceSubjects, DeploymentId, CreateOidcProvider]
+      - Label: { default: "The source buckets" }
+        Parameters: [SourceBuckets]
+      - Label: { default: "Private networking (optional)" }
+        Parameters: [VpcId, SubnetIds, EndpointClientCidr]
+
+Parameters:
+  TenantId:
+    Type: String
+    AllowedPattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    Description: The Entra tenant of the OmniFile service.
+  Audience:
+    Type: String
+    AllowedPattern: "^api://[A-Za-z0-9][A-Za-z0-9._/-]{0,200}$"
+    Description: The api:// audience the service's tokens carry.
+  ServiceSubjects:
+    Type: CommaDelimitedList
+    # Checked per value before it goes into the trust policy's JSON.
+    AllowedPattern: "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    Description: Object ids of the service's managed identities that use AWS.
+  DeploymentId:
+    Type: String
+    AllowedPattern: "^[a-z0-9][a-z0-9-]{1,19}$"
+    Default: omnifile
+    Description: A short name in every resource's name.
+  CreateOidcProvider:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
+    Description: false if this account already has the IAM OIDC provider for this tenant.
+  SourceBuckets:
+    Type: CommaDelimitedList
+    AllowedPattern: "^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$"
+    Description: The S3 buckets OmniFile reads and migrates from. Turn on EventBridge for each.
+  VpcId:
+    Type: String
+    Default: ""
+    Description: With private networking, the VPC for the S3, STS and SQS interface endpoints.
+  SubnetIds:
+    Type: CommaDelimitedList
+    Default: ""
+    Description: The subnets for the interface endpoints.
+  EndpointClientCidr:
+    Type: String
+    Default: ""
+    AllowedPattern: "^$|^([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}$"
+    Description: >-
+      Who may reach the interface endpoints on 443: the OmniFile service's VNet range (the
+      portal fills it in). Required with VpcId.
+
+Rules:
+  EndpointsNeedTheirClients:
+    RuleCondition: !Not [!Equals [!Ref VpcId, ""]]
+    Assertions:
+      - Assert: !Not [!Equals [!Ref EndpointClientCidr, ""]]
+        AssertDescription: With VpcId, give EndpointClientCidr (the OmniFile service's VNet range).
+
+Conditions:
+  MakeOidcProvider: !Equals [!Ref CreateOidcProvider, "true"]
+  MakeEndpoints: !Not [!Equals [!Ref VpcId, ""]]
+  InChina: !Equals [!Ref AWS::Partition, aws-cn]
+  InGovCloud: !Equals [!Ref AWS::Partition, aws-us-gov]
+
+Resources:
+  OidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: MakeOidcProvider
+    Properties:
+      Url: !Sub "https://sts.windows.net/${TenantId}/"
+      ClientIdList: [!Ref Audience]
+
+  ServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "omnifile-service-${DeploymentId}"
+      Description: OmniFile service, assumed with its Entra web identity. No keys.
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument: !Sub
+        - '{"Version":"2012-10-17","Statement":[{"Sid":"OmniFileServiceWebIdentity","Effect":"Allow","Principal":{"Federated":"arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/sts.windows.net/${TenantId}/"},"Action":"sts:AssumeRoleWithWebIdentity","Condition":{"StringEquals":{"sts.windows.net/${TenantId}/:aud":"${Audience}","sts.windows.net/${TenantId}/:sub":["${Subjects}"]}}}]}'
+        - Subjects: !Join ['","', !Ref ServiceSubjects]
+      Policies:
+        - PolicyName: read-sources
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ReadTheSourceBuckets
+                Effect: Allow
+                Action:
+                  - s3:ListBucket
+                  - s3:ListBucketVersions
+                  - s3:GetBucketLocation
+                  - s3:GetBucketVersioning
+                  - s3:GetBucketNotification
+                  - s3:GetInventoryConfiguration
+                Resource: !If
+                  - InChina
+                  - !Split [",", !Sub ["arn:aws-cn:s3:::${B}", { B: !Join [",arn:aws-cn:s3:::", !Ref SourceBuckets] }]]
+                  - !If
+                    - InGovCloud
+                    - !Split [",", !Sub ["arn:aws-us-gov:s3:::${B}", { B: !Join [",arn:aws-us-gov:s3:::", !Ref SourceBuckets] }]]
+                    - !Split [",", !Sub ["arn:aws:s3:::${B}", { B: !Join [",arn:aws:s3:::", !Ref SourceBuckets] }]]
+              # Decision 40: OmniFile may always request restores, so RestoreObject is allowed
+              # here explicitly; it isn't one of the denied write actions below.
+              - Sid: ReadAndRestoreTheSourceObjects
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:GetObjectAttributes
+                  - s3:GetObjectVersionAttributes
+                  - s3:RestoreObject
+                Resource: !If
+                  - InChina
+                  - !Split [",", !Sub ["arn:aws-cn:s3:::${B}/*", { B: !Join ["/*,arn:aws-cn:s3:::", !Ref SourceBuckets] }]]
+                  - !If
+                    - InGovCloud
+                    - !Split [",", !Sub ["arn:aws-us-gov:s3:::${B}/*", { B: !Join ["/*,arn:aws-us-gov:s3:::", !Ref SourceBuckets] }]]
+                    - !Split [",", !Sub ["arn:aws:s3:::${B}/*", { B: !Join ["/*,arn:aws:s3:::", !Ref SourceBuckets] }]]
+              # Decision 40, for any resource and any path to it (bucket ARNs, access points,
+              # Multi-Region Access Points): no S3 write of any kind outside OmniFile's ops bucket.
+              - Sid: NeverWriteOutsideTheOpsBucket
+                Effect: Deny
+                Action:
+                  - s3:Put*
+                  - s3:Delete*
+                  - s3:Replicate*
+                  - s3:Bypass*
+                  - s3:AbortMultipartUpload
+                  - s3:ObjectOwnerOverrideToBucketOwner
+                NotResource:
+                  - !GetAtt OpsBucket.Arn
+                  - !Sub "${OpsBucket.Arn}/*"
+        - PolicyName: operate
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ListBucketsForConnect
+                Effect: Allow
+                Action: s3:ListAllMyBuckets
+                Resource: "*"
+              - Sid: ReadThisStack
+                Effect: Allow
+                Action: cloudformation:DescribeStacks
+                Resource: !Ref AWS::StackId
+              - Sid: BatchOperations
+                Effect: Allow
+                Action:
+                  - s3:CreateJob
+                  - s3:DescribeJob
+                  - s3:ListJobs
+                  - s3:UpdateJobStatus
+                  - s3:UpdateJobPriority
+                Resource: "*"
+              # This one role and no other. No iam:PassedToService condition: with one, real
+              # AWS denied CreateJob its iam:PassRole (2026-11-14; StringEquals and
+              # StringEqualsIfExists alike), and without it the job ran. AWS's own Batch
+              # Operations examples carry none. What keeps the role to Batch Operations is
+              # its trust policy, below.
+              - Sid: PassOnlyTheBatchRole
+                Effect: Allow
+                Action: iam:PassRole
+                Resource: !GetAtt BatchRole.Arn
+              - Sid: TheOpsBucket
+                Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:DeleteObject, s3:AbortMultipartUpload, s3:ListBucket, s3:GetBucketLocation]
+                Resource:
+                  - !GetAtt OpsBucket.Arn
+                  - !Sub "${OpsBucket.Arn}/*"
+              - Sid: TheEventQueue
+                Effect: Allow
+                Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:ChangeMessageVisibility, sqs:GetQueueAttributes, sqs:GetQueueUrl]
+                Resource: !GetAtt EventQueue.Arn
+
+  BatchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "omnifile-batch-${DeploymentId}"
+      Description: S3 Batch Operations restore and checksum jobs for OmniFile.
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: batchoperations.s3.amazonaws.com }
+            Action: sts:AssumeRole
+            # Only Batch jobs of this account (the confused-deputy guard).
+            Condition:
+              StringEquals: { "aws:SourceAccount": !Ref AWS::AccountId }
+      Policies:
+        - PolicyName: restore-and-report
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: RestoreAndReadTheSources
+                Effect: Allow
+                Action: [s3:RestoreObject, s3:GetObject, s3:GetObjectVersion]
+                Resource: !If
+                  - InChina
+                  - !Split [",", !Sub ["arn:aws-cn:s3:::${B}/*", { B: !Join ["/*,arn:aws-cn:s3:::", !Ref SourceBuckets] }]]
+                  - !If
+                    - InGovCloud
+                    - !Split [",", !Sub ["arn:aws-us-gov:s3:::${B}/*", { B: !Join ["/*,arn:aws-us-gov:s3:::", !Ref SourceBuckets] }]]
+                    - !Split [",", !Sub ["arn:aws:s3:::${B}/*", { B: !Join ["/*,arn:aws:s3:::", !Ref SourceBuckets] }]]
+              - Sid: ManifestsAndReports
+                Effect: Allow
+                Action: [s3:GetObject, s3:GetObjectVersion, s3:PutObject, s3:GetBucketLocation]
+                Resource:
+                  - !GetAtt OpsBucket.Arn
+                  - !Sub "${OpsBucket.Arn}/*"
+              - Sid: NeverWriteOutsideTheOpsBucket
+                Effect: Deny
+                Action:
+                  - s3:Put*
+                  - s3:Delete*
+                  - s3:Replicate*
+                  - s3:Bypass*
+                  - s3:AbortMultipartUpload
+                  - s3:ObjectOwnerOverrideToBucketOwner
+                NotResource:
+                  - !GetAtt OpsBucket.Arn
+                  - !Sub "${OpsBucket.Arn}/*"
+
+  OpsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "omnifile-ops-${DeploymentId}-${AWS::AccountId}"
+      OwnershipControls:
+        Rules: [{ ObjectOwnership: BucketOwnerEnforced }]
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: { SSEAlgorithm: AES256 }
+      # An interrupted staging copy or manifest upload leaves parts behind: S3 drops them
+      # after a day, so nothing is billed for them for long.
+      LifecycleConfiguration:
+        Rules:
+          - Id: abort-incomplete-multipart-uploads
+            Status: Enabled
+            AbortIncompleteMultipartUpload: { DaysAfterInitiation: 1 }
+
+  OpsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref OpsBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: TlsOnly
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt OpsBucket.Arn
+              - !Sub "${OpsBucket.Arn}/*"
+            Condition:
+              Bool: { "aws:SecureTransport": "false" }
+
+  EventQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub "omnifile-events-${DeploymentId}"
+      SqsManagedSseEnabled: true
+      MessageRetentionPeriod: 1209600
+      VisibilityTimeout: 300
+
+  EventQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues: [!Ref EventQueue]
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: OnlyTheRule
+            Effect: Allow
+            Principal: { Service: events.amazonaws.com }
+            Action: sqs:SendMessage
+            Resource: !GetAtt EventQueue.Arn
+            Condition:
+              ArnEquals: { "aws:SourceArn": !GetAtt EventRule.Arn }
+
+  EventRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: !Sub "omnifile-events-${DeploymentId}"
+      Description: S3 events of the source buckets, for OmniFile's catalog and restores.
+      EventPattern:
+        source: [aws.s3]
+        detail-type:
+          - Object Created
+          - Object Deleted
+          - Object Restore Initiated
+          - Object Restore Completed
+          - Object Restore Expired
+          - Object Storage Class Changed
+          - Object Access Tier Changed
+        detail:
+          bucket:
+            name: !Ref SourceBuckets
+      Targets:
+        - Id: omnifile-queue
+          Arn: !GetAtt EventQueue.Arn
+
+  EndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: MakeEndpoints
+    Metadata:
+      # EndpointClientCidr defaults to empty; the EndpointsNeedTheirClients rule requires it here.
+      cfn-lint: { config: { ignore_checks: [W1030] } }
+    Properties:
+      GroupDescription: OmniFile interface endpoints, HTTPS from the OmniFile service VNet.
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - { IpProtocol: tcp, FromPort: 443, ToPort: 443, CidrIp: !Ref EndpointClientCidr }
+
+  # The interface endpoints' policies let through only what OmniFile does, and only for
+  # this account's principals (STS: only the web-identity assumption of the service role).
+  S3Endpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: MakeEndpoints
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.s3"
+      VpcId: !Ref VpcId
+      SubnetIds: !Ref SubnetIds
+      SecurityGroupIds: [!Ref EndpointSecurityGroup]
+      PrivateDnsEnabled: false
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: ReadAndRestoreAndOperate
+            Effect: Allow
+            Principal: "*"
+            Action:
+              - s3:GetObject
+              - s3:GetObjectVersion
+              - s3:GetObjectAttributes
+              - s3:GetObjectVersionAttributes
+              - s3:RestoreObject
+              - s3:ListBucket
+              - s3:ListBucketVersions
+              - s3:ListAllMyBuckets
+              - s3:GetBucketLocation
+              - s3:GetBucketVersioning
+              - s3:GetBucketNotification
+              - s3:GetInventoryConfiguration
+              - s3:CreateJob
+              - s3:DescribeJob
+              - s3:ListJobs
+              - s3:UpdateJobStatus
+              - s3:UpdateJobPriority
+            Resource: "*"
+            Condition:
+              StringEquals: { "aws:PrincipalAccount": !Ref AWS::AccountId }
+          - Sid: WriteOnlyTheOpsBucket
+            Effect: Allow
+            Principal: "*"
+            Action: [s3:PutObject, s3:DeleteObject, s3:AbortMultipartUpload]
+            Resource: !Sub "${OpsBucket.Arn}/*"
+            Condition:
+              StringEquals: { "aws:PrincipalAccount": !Ref AWS::AccountId }
+
+  StsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: MakeEndpoints
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.sts"
+      VpcId: !Ref VpcId
+      SubnetIds: !Ref SubnetIds
+      SecurityGroupIds: [!Ref EndpointSecurityGroup]
+      PrivateDnsEnabled: false
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: OnlyTheServiceRole
+            Effect: Allow
+            Principal: "*"
+            Action: sts:AssumeRoleWithWebIdentity
+            Resource: !GetAtt ServiceRole.Arn
+
+  SqsEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: MakeEndpoints
+    Properties:
+      VpcEndpointType: Interface
+      ServiceName: !Sub "com.amazonaws.${AWS::Region}.sqs"
+      VpcId: !Ref VpcId
+      SubnetIds: !Ref SubnetIds
+      SecurityGroupIds: [!Ref EndpointSecurityGroup]
+      PrivateDnsEnabled: false
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: OnlyTheEventQueue
+            Effect: Allow
+            Principal: "*"
+            Action: [sqs:ReceiveMessage, sqs:DeleteMessage, sqs:ChangeMessageVisibility, sqs:GetQueueAttributes, sqs:GetQueueUrl]
+            Resource: !GetAtt EventQueue.Arn
+            Condition:
+              StringEquals: { "aws:PrincipalAccount": !Ref AWS::AccountId }
+
+Outputs:
+  AccountId: { Value: !Ref AWS::AccountId }
+  Region: { Value: !Ref AWS::Region }
+  DeploymentId: { Value: !Ref DeploymentId }
+  RoleArn: { Value: !GetAtt ServiceRole.Arn }
+  BatchRoleArn: { Value: !GetAtt BatchRole.Arn }
+  OpsBucket: { Value: !Ref OpsBucket }
+  EventQueueUrl: { Value: !Ref EventQueue }
+  EventQueueArn: { Value: !GetAtt EventQueue.Arn }
+  SourceBuckets: { Value: !Join [",", !Ref SourceBuckets] }
+  S3EndpointDns:
+    Condition: MakeEndpoints
+    Value: !Select [1, !Split [":", !Select [0, !GetAtt S3Endpoint.DnsEntries]]]
+  StsEndpointDns:
+    Condition: MakeEndpoints
+    Value: !Select [1, !Split [":", !Select [0, !GetAtt StsEndpoint.DnsEntries]]]
+  SqsEndpointDns:
+    Condition: MakeEndpoints
+    Value: !Select [1, !Split [":", !Select [0, !GetAtt SqsEndpoint.DnsEntries]]]

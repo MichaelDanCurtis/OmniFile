@@ -1,0 +1,10 @@
+# The one place the NFS-Ganesha version for FSAL_OMNI is pinned.
+# Sourced by fsal/build/Containerfile (sh syntax: KEY=value, no spaces).
+# FSAL_OMNI must be built against exactly this Ganesha and the same config.h
+# options it is loaded by (filer spike B, docs/pilots/filer-spike-results-B.md).
+# To bump: change all three lines together, rebuild the image, rerun the smoke test.
+GANESHA_TAG=V15.6
+# Commit the annotated tag V15.6 points to (git ls-remote ... 'refs/tags/V15.6^{}').
+GANESHA_COMMIT=98eb4beb642674d4188361008495bb6d585d393d
+# src/libntirpc submodule commit recorded by GANESHA_COMMIT (git ls-tree HEAD src/libntirpc).
+NTIRPC_COMMIT=848ab93b63174338ad72875bddd5680113f64b39

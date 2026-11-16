@@ -1,0 +1,131 @@
+config: host-trusted share with Clients=*	REFUSED	REFUSED	PASS
+smb.conf: no vfs_acl_xattr	ABSENT	ABSENT	PASS
+nfs-sys geo-owner resident read	OK	OK	PASS
+nfs-sys geo-owner resident write	OK	OK	PASS
+nfs-sys geo-owner create file	OK	OK	PASS
+nfs-sys geo-owner stub read (failfast)	EIO	EIO	PASS
+nfs-sys geo-owner stub recall requested as uid 20005	yes	yes	PASS
+nfs-sys geo-owner stub write	EIO	EIO	PASS
+nfs-sys geo-owner recalling read (wait)	OK	OK	PASS
+nfs-sys geo-owner recalled bytes correct	yes	yes	PASS
+nfs-sys geo-writer resident read	OK	OK	PASS
+nfs-sys geo-writer resident write	OK	OK	PASS
+nfs-sys geo-writer create file	OK	OK	PASS
+nfs-sys geo-writer stub read (failfast)	EIO	EIO	PASS
+nfs-sys geo-writer stub recall requested as uid 20002	yes	yes	PASS
+nfs-sys geo-writer stub write	EIO	EIO	PASS
+nfs-sys geo-writer recalling read (wait)	OK	OK	PASS
+nfs-sys geo-writer recalled bytes correct	yes	yes	PASS
+nfs-sys geo-reader resident read	OK	OK	PASS
+nfs-sys geo-reader resident write	DENIED	DENIED	PASS
+nfs-sys geo-reader create file	DENIED	DENIED	PASS
+nfs-sys geo-reader stub read (failfast)	EIO	EIO	PASS
+nfs-sys geo-reader stub recall requested as uid 20001	yes	yes	PASS
+nfs-sys geo-reader stub write	DENIED	DENIED	PASS
+nfs-sys geo-reader recalling read (wait)	OK	OK	PASS
+nfs-sys geo-reader recalled bytes correct	yes	yes	PASS
+nfs-sys geo-nested resident read	OK	OK	PASS
+nfs-sys geo-nested resident write	DENIED	DENIED	PASS
+nfs-sys geo-nested create file	DENIED	DENIED	PASS
+nfs-sys geo-nested stub read (failfast)	EIO	EIO	PASS
+nfs-sys geo-nested stub recall requested as uid 20006	yes	yes	PASS
+nfs-sys geo-nested stub write	DENIED	DENIED	PASS
+nfs-sys geo-nested recalling read (wait)	OK	OK	PASS
+nfs-sys geo-nested recalled bytes correct	yes	yes	PASS
+nfs-sys geo-none resident read	DENIED	DENIED	PASS
+nfs-sys geo-none resident write	DENIED	DENIED	PASS
+nfs-sys geo-none create file	DENIED	DENIED	PASS
+nfs-sys geo-none stub read (failfast)	DENIED	DENIED	PASS
+nfs-sys geo-none stub: no recall	yes	yes	PASS
+nfs-sys geo-none stub write	DENIED	DENIED	PASS
+nfs-sys geo-none recalling read (wait)	DENIED	DENIED	PASS
+nfs-sys geo-none claiming Owners/Writers/Readers gids: read	DENIED	DENIED	PASS
+nfs-sys root (Root_Squash) read	DENIED	DENIED	PASS
+chmod 644, not normalised: geo-reader kernel vs NFS (Ganesha)	OK	DENIED	FINDING
+normalise: omniacl normalize repairs the chmod'ed file	normalized=1	normalized=1	PASS
+normalise: geo-reader reads chmod644.txt over NFS	OK	OK	PASS
+normalise: geo-writer writes chmod644.txt over NFS (mask restored)	OK	OK	PASS
+normalise: geo-none still denied	DENIED	DENIED	PASS
+normalise: other::--- after repair	other::---	other::---	PASS
+nfs-krb5p geo-owner resident read	OK	OK	PASS
+nfs-krb5p geo-owner resident write	OK	OK	PASS
+nfs-krb5p geo-owner recalling read (wait)	OK	OK	PASS
+nfs-krb5p geo-writer resident read	OK	OK	PASS
+nfs-krb5p geo-writer resident write	OK	OK	PASS
+nfs-krb5p geo-writer recalling read (wait)	OK	OK	PASS
+nfs-krb5p geo-reader resident read	OK	OK	PASS
+nfs-krb5p geo-reader resident write	DENIED	DENIED	PASS
+nfs-krb5p geo-reader recalling read (wait)	OK	OK	PASS
+nfs-krb5p geo-nested resident read	OK	OK	PASS
+nfs-krb5p geo-nested resident write	DENIED	DENIED	PASS
+nfs-krb5p geo-nested recalling read (wait)	OK	OK	PASS
+nfs-krb5p geo-none resident read	DENIED	DENIED	PASS
+nfs-krb5p geo-none resident write	DENIED	DENIED	PASS
+nfs-krb5p geo-none recalling read (wait)	DENIED	DENIED	PASS
+nfs-krb5p recall from geo-reader reported as Kerberos (proven)	yes	yes	PASS
+nfs-krb5p service level in identity.sec (4=krb5p)	4	4	PASS
+nfs-krb5p principal in READ_INTENT	geo-reader@OMNI.TEST	geo-reader@OMNI.TEST	PASS
+smb-client geo-owner resident read	OK	OK	PASS
+smb-client geo-owner create file	OK	OK	PASS
+smb-client geo-owner stub open	OK	OK	PASS
+smb geo-owner stub read (smb-guard, failfast)	EIO	EIO	PASS
+smb geo-owner stub recall requested by smbd	yes	yes	PASS
+smb geo-owner stub read: no zeros kept	yes	yes	PASS
+smb-client geo-writer resident read	OK	OK	PASS
+smb-client geo-writer create file	OK	OK	PASS
+smb-client geo-writer stub open	OK	OK	PASS
+smb geo-writer stub read (smb-guard, failfast)	EIO	EIO	PASS
+smb geo-writer stub recall requested by smbd	yes	yes	PASS
+smb geo-writer stub read: no zeros kept	yes	yes	PASS
+smb-client geo-reader resident read	OK	OK	PASS
+smb-client geo-reader create file	DENIED	DENIED	PASS
+smb-client geo-reader stub open	OK	OK	PASS
+smb geo-reader stub read (smb-guard, failfast)	EIO	EIO	PASS
+smb geo-reader stub recall requested by smbd	yes	yes	PASS
+smb geo-reader stub read: no zeros kept	yes	yes	PASS
+smb-client geo-nested resident read	OK	OK	PASS
+smb-client geo-nested create file	DENIED	DENIED	PASS
+smb-client geo-nested stub open	OK	OK	PASS
+smb geo-nested stub read (smb-guard, failfast)	EIO	EIO	PASS
+smb geo-nested stub recall requested by smbd	yes	yes	PASS
+smb geo-nested stub read: no zeros kept	yes	yes	PASS
+smb-client geo-none resident read	DENIED	DENIED	PASS
+smb-client geo-none create file	DENIED	DENIED	PASS
+smb-client geo-none stub open	DENIED	DENIED	PASS
+smb geo-none stub read (smb-guard, failfast)	DENIED	DENIED	PASS
+smb geo-none stub: no recall	yes	yes	PASS
+smb geo-none: share 'proj' listed (access based share enum)	no	no	PASS
+smb geo-reader: share 'proj' listed	yes	yes	PASS
+smb geo-reader: owners-only.txt listed (hide unreadable)	no	no	PASS
+smb geo-owner: owners-only.txt listed	yes	yes	PASS
+smb-cifs geo-owner mount	OK	OK	PASS
+smb-cifs geo-owner resident read	OK	OK	PASS
+smb-cifs geo-owner create file	OK	OK	PASS
+smb-cifs geo-writer mount	OK	OK	PASS
+smb-cifs geo-writer resident read	OK	OK	PASS
+smb-cifs geo-writer create file	OK	OK	PASS
+smb-cifs geo-reader mount	OK	OK	PASS
+smb-cifs geo-reader resident read	OK	OK	PASS
+smb-cifs geo-reader create file	DENIED	DENIED	PASS
+smb-cifs geo-nested mount	OK	OK	PASS
+smb-cifs geo-nested resident read	OK	OK	PASS
+smb-cifs geo-nested create file	DENIED	DENIED	PASS
+smb-cifs geo-none mount	DENIED	DENIED	PASS
+explorer: geo-reader reads explorer.txt over NFS (inherited Readers)	OK	OK	PASS
+explorer: geo-owner removes the Proj-Readers ACE (smbcacls -D)	OK	OK	PASS
+explorer: geo-reader reads explorer.txt over NFS after removal	DENIED	DENIED	PASS
+explorer: geo-nested reads explorer.txt over NFS after removal	DENIED	DENIED	PASS
+explorer: geo-writer still reads explorer.txt over NFS	OK	OK	PASS
+explorer: geo-owner grants geo-reader READ (smbcacls -a)	OK	OK	PASS
+explorer: grant stored as POSIX entry user:20001	yes	yes	PASS
+explorer: geo-reader reads explorer.txt over NFS after the grant	OK	OK	PASS
+explorer: geo-nested still denied over NFS	DENIED	DENIED	PASS
+explorer: no security.NTACL written	absent	absent	PASS
+explorer: drift scan reports explorer.txt changed	yes	yes	PASS
+explorer: share root still clean	clean=true	clean=true	PASS
+explorer: scan findings (security.NTACL)	[]	[]	PASS
+identity: smbd pid -> geo-nested SID, proven	yes	yes	PASS
+identity: same pid after disconnect is not attributed	yes	yes	PASS
+identity: NFS sys uid 20001 -> SID, claimed	yes	yes	PASS
+identity: NFS krb5p uid 20001 -> SID, proven	yes	yes	PASS
+acls: stub/recalled files' ACLs identical to setup	0	0	PASS

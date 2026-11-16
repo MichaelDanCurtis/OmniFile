@@ -1,0 +1,21 @@
+[package]
+name = "omnifile-identity"
+description = "OmniFile Gateway edge identity: NFS uid/gid and SMB session (fanotify pid/pidfd) to AD SID through winbind, with claimed/proven flags (decision 28)"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+# pidfd_send_signal, /proc reads. MIT OR Apache-2.0.
+libc = "0.2"
+# smbstatus --json and the control-API requester shape. MIT OR Apache-2.0.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# Error types. MIT OR Apache-2.0.
+thiserror = "2"
+# Structured logging. MIT.
+tracing = "0.1"
+
+[dev-dependencies]
+tempfile = "3"

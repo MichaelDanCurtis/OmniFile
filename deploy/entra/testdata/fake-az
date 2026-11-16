@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+"""A fake `az` for deploy/entra/test-register.sh: it never reaches Azure or Microsoft Graph.
+
+Each call is appended to $FAKE_AZ_LOG as one line (the arguments, with temporary paths
+replaced by <tmp>/<name>); its answer comes from a small tenant held in $FAKE_AZ_STATE, so a
+second run sees what the first created. An unexpected call exits 99, which fails the test.
+"""
+
+import json
+import os
+import re
+import sys
+
+GRAPH = "00000003-0000-0000-c000-000000000000"
+ARM = "797f4846-ba00-4fd7-ba43-dac1f8f63013"
+GRAPH_SP = "99999999-0000-0000-0000-00000000aaaa"
+SCOPES = {
+    "openid": "37f7f235-0000-0000-0000-000000000001",
+    "profile": "14dad69e-0000-0000-0000-000000000002",
+}
+ROLES = {
+    "User.Read.All": "df021288-0000-0000-0000-000000000003",
+    "GroupMember.Read.All": "98830695-0000-0000-0000-000000000004",
+    "TeamsAppInstallation.ReadWriteSelfForUser.All": "908de74d-0000-0000-0000-000000000005",
+}
+TENANT = os.environ.get("FAKE_AZ_TENANT", "72f988bf-0000-0000-0000-000000000000")
+
+args = sys.argv[1:]
+state_path = os.environ["FAKE_AZ_STATE"]
+try:
+    state = json.load(open(state_path))
+except FileNotFoundError:
+    state = {"apps": {}, "sps": [], "fics": {}, "assignments": {}, "teams": {}}
+
+
+def logged(a: str) -> str:
+    """A file argument (`@/path` or `/path`) as <tmp>/<name>: its directory differs per run."""
+    at = "@" if a.startswith("@") else ""
+    path = a[len(at) :]
+    if os.path.isabs(path) and os.path.exists(path):
+        return f"{at}<tmp>/{os.path.basename(path)}"
+    return a
+
+
+with open(os.environ["FAKE_AZ_LOG"], "a") as log:
+    log.write(" ".join(logged(a) for a in args) + "\n")
+
+
+def opt(name: str, default=None):
+    return args[args.index(name) + 1] if name in args else default
+
+
+def done(out="", code=0):
+    json.dump(state, open(state_path, "w"))
+    if out:
+        print(out)
+    sys.exit(code)
+
+
+def body() -> dict:
+    raw = opt("--body") or opt("--parameters")
+    return json.load(open(raw[1:])) if raw.startswith("@") else json.loads(raw)
+
+
+cmd = " ".join(a for a in args[:4] if not a.startswith("-"))
+if args[:2] == ["account", "show"]:
+    done(TENANT)
+if cmd.startswith("ad app list"):
+    name = opt("--display-name")
+    done(next((a for a, v in state["apps"].items() if v["name"] == name), ""))
+if cmd.startswith("ad app create"):
+    app = f"aaaaaaaa-0000-0000-0000-{len(state['apps']) + 1:012d}"
+    state["apps"][app] = {"name": opt("--display-name"), "id": app.replace("aaaaaaaa", "bbbbbbbb")}
+    done(json.dumps({"appId": app, "id": state["apps"][app]["id"]}))
+if cmd.startswith("ad app update") or cmd.startswith("ad app permission"):
+    done()
+if cmd.startswith("ad sp show"):
+    sp = opt("--id")
+    if sp == ARM:
+        done("41094075-0000-0000-0000-000000000006")
+    if sp == GRAPH:
+        q = opt("--query")
+        if q == "id":
+            done(GRAPH_SP)
+        m = re.search(r"value=='([^']+)'", q)
+        table = SCOPES if q.startswith("oauth2PermissionScopes") else ROLES
+        done(table.get(m[1], "") if m else "")
+    done(code=0 if sp in state["sps"] else 3)
+if cmd.startswith("ad sp create"):
+    state["sps"].append(opt("--id"))
+    done()
+if cmd.startswith("ad app federated-credential list"):
+    fic = state["fics"].get(opt("--id"))
+    done(fic["subject"] if fic else "")
+if cmd.startswith("ad app federated-credential create"):
+    state["fics"][opt("--id")] = body()
+    done()
+if cmd.startswith("ad app federated-credential delete"):
+    state["fics"].pop(opt("--id"), None)
+    done()
+if args[0] == "rest":
+    method, uri = opt("--method"), opt("--uri")
+    if m := re.search(r"/servicePrincipals/([^/]+)/appRoleAssignments$", uri):
+        have = state["assignments"].setdefault(m[1], [])
+        if method == "GET":
+            done("\n".join(have))
+        if method == "POST":
+            b = body()
+            assert b["resourceId"] == GRAPH_SP and b["principalId"] == m[1], b
+            have.append(b["appRoleId"])
+            done()
+    if "/appCatalogs/teamsApps" in uri:
+        if method == "GET":
+            ext = re.search(r"externalId eq '([^']+)'", uri)[1]
+            done(os.environ.get("FAKE_AZ_CATALOG_ID") or state["teams"].get(ext, ""))
+        if method == "POST" and uri.endswith("/appCatalogs/teamsApps"):
+            import zipfile
+
+            ext = json.load(zipfile.ZipFile(opt("--body")[1:]).open("manifest.json"))["id"]
+            state["teams"][ext] = "cccccccc-0000-0000-0000-000000000001"
+            done(state["teams"][ext])
+        if method == "POST" and uri.endswith("/appDefinitions"):
+            done()
+print(f"fake az: unexpected call: {' '.join(args)}", file=sys.stderr)
+sys.exit(99)

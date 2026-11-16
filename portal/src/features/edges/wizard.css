@@ -1,0 +1,196 @@
+/* Edges, Add edge (WP18). Tokens only. */
+
+.wizard-body {
+  margin-top: var(--space-5);
+}
+
+.wizard-body h2 {
+  font-size: var(--text-heading);
+}
+
+.wizard-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.platform-grid {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.platform-grid legend,
+.platform-grid > p,
+.platform-grid > .skip-row {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+.platform-format {
+  margin-left: 6px;
+  padding: 1px 7px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink-2);
+}
+
+.platform .option-title {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.platform[data-locked] .option-body {
+  color: var(--ink-2);
+}
+
+.cmd {
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.cmd-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 6px 8px 6px 14px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.cmd-body {
+  margin: 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  line-height: 1.6;
+  color: var(--ink);
+  white-space: pre;
+}
+
+.cmd-body:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: -2px;
+}
+
+.code-box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+  align-items: start;
+}
+
+.code-box textarea {
+  width: 100%;
+  word-break: break-all;
+}
+
+.console-steps {
+  margin: 0;
+  padding-left: 1.4em;
+  display: grid;
+  gap: 6px;
+}
+
+/* The last step: three stages, each turns green when it happens. */
+.enrol-wait {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+}
+
+.enrol-wait li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 2px 12px;
+  padding: 0 0 18px;
+}
+
+.enrol-wait li::before {
+  content: "";
+  position: absolute;
+  left: 15px;
+  top: 30px;
+  bottom: 0;
+  border-left: 2px dotted var(--border-strong);
+}
+
+.enrol-wait li:last-child::before {
+  display: none;
+}
+
+.enrol-wait li[data-done]::before {
+  border-left: 2px solid var(--ok);
+}
+
+.enrol-dot {
+  position: relative;
+  grid-row: span 2;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.enrol-wait li[data-done] .enrol-dot {
+  background: var(--ok);
+  border-color: var(--ok);
+  color: var(--surface);
+}
+
+.enrol-wait li[data-current] .enrol-dot {
+  border-color: var(--ink);
+}
+
+.enrol-wait li[data-current] .enrol-dot::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1px solid var(--ink);
+  animation: halo 1.8s var(--ease-out) infinite;
+}
+
+.enrol-name {
+  font-weight: 500;
+  padding-top: 5px;
+}
+
+.enrol-wait li:not([data-done], [data-current]) .enrol-name {
+  color: var(--muted);
+}
+
+.enrol-note {
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 640px) {
+  .code-box {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .steps .step-name {
+    font-size: var(--text-caption);
+  }
+}

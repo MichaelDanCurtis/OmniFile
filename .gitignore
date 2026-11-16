@@ -1,0 +1,20 @@
+target/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+*.egg-info/
+.DS_Store
+.env
+
+# Local coding-tool state
+.omc/
+
+# Taken at deploy time by deploy/azure/relay-ranges.sh (decision 49), never committed
+deploy/azure/relay-allowed-cidrs.json
+
+# The public snapshot's scrub list (release/public_snapshot.py); it names what must not be published
+release/public-scrub.local

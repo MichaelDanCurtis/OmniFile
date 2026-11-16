@@ -1,0 +1,123 @@
+{
+  "properties": {
+    "changes": [
+      {
+        "after": {
+          "apiVersion": "2025-08-01",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-omnifile-test/providers/Microsoft.Storage/storageAccounts/oftestwtstuniq012345",
+          "kind": "StorageV2",
+          "location": "westeurope",
+          "name": "oftestwtstuniq012345",
+          "properties": {
+            "allowSharedKeyAccess": false,
+            "immutableStorageWithVersioning": {
+              "enabled": true
+            },
+            "minimumTlsVersion": "TLS1_2",
+            "publicNetworkAccess": "Disabled"
+          },
+          "sku": {
+            "name": "Standard_LRS"
+          },
+          "tags": {
+            "omnifile-expires": "2026-11-05T00:00:00Z",
+            "omnifile-run": "check",
+            "omnifile-share": "tst",
+            "product": "omnifile-gateway"
+          },
+          "type": "Microsoft.Storage/storageAccounts"
+        },
+        "changeType": "Create",
+        "resourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-omnifile-test/providers/Microsoft.Storage/storageAccounts/oftestwtstuniq012345",
+        "symbolicName": "account"
+      },
+      {
+        "after": {
+          "apiVersion": "2025-07-01",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-omnifile-test/providers/Microsoft.App/containerApps/oftest-api",
+          "location": "westeurope",
+          "name": "oftest-api",
+          "properties": {
+            "configuration": {
+              "ingress": {
+                "exposedPort": 8443,
+                "external": true,
+                "targetPort": 8443,
+                "transport": "tcp"
+              }
+            },
+            "template": {
+              "containers": [
+                {
+                  "command": [
+                    "python",
+                    "-m",
+                    "omnifile_service.api"
+                  ],
+                  "image": "registry.example.test/omnifile-service@sha256:1111111111111111111111111111111111111111111111111111111111111111",
+                  "name": "oftest-api"
+                }
+              ]
+            }
+          },
+          "type": "Microsoft.App/containerApps"
+        },
+        "changeType": "Create",
+        "resourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-omnifile-test/providers/Microsoft.App/containerApps/oftest-api",
+        "symbolicName": "app"
+      },
+      {
+        "after": {
+          "apiVersion": "2023-01-31",
+          "etag": "\"0x8DD0000000000A1\"",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-omnifile-test/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-oftest-api",
+          "location": "westeurope",
+          "name": "id-oftest-api",
+          "tags": {
+            "omnifile-run": "check",
+            "product": "omnifile-gateway"
+          },
+          "type": "Microsoft.ManagedIdentity/userAssignedIdentities"
+        },
+        "before": {
+          "apiVersion": "2023-01-31",
+          "etag": "\"0x8DD0000000000A0\"",
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-omnifile-test/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-oftest-api",
+          "location": "westeurope",
+          "name": "id-oftest-api",
+          "systemData": {
+            "createdAt": "2026-11-03T10:00:00Z"
+          },
+          "tags": {
+            "product": "omnifile-gateway"
+          },
+          "type": "Microsoft.ManagedIdentity/userAssignedIdentities"
+        },
+        "changeType": "Modify",
+        "delta": [
+          {
+            "after": "check",
+            "path": "tags.omnifile-run",
+            "propertyChangeType": "Create"
+          }
+        ],
+        "resourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-omnifile-test/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id-oftest-api"
+      },
+      {
+        "after": {
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-omnifile-test/providers/Microsoft.Network/virtualNetworks/oftest-vnet",
+          "name": "oftest-vnet",
+          "type": "Microsoft.Network/virtualNetworks"
+        },
+        "before": {
+          "id": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-omnifile-test/providers/Microsoft.Network/virtualNetworks/oftest-vnet",
+          "name": "oftest-vnet",
+          "type": "Microsoft.Network/virtualNetworks"
+        },
+        "changeType": "NoChange",
+        "resourceId": "/subscriptions/00000000-0000-0000-0000-000000000001/resourceGroups/rg-omnifile-test/providers/Microsoft.Network/virtualNetworks/oftest-vnet"
+      }
+    ]
+  },
+  "status": "Succeeded"
+}

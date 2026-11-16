@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# A stand-in az for release dry runs: only `az keyvault key show|sign`, answered from a local key
+# ($FAKE_AZ_KEY) by appliance/tests/fake_az.py. Everything else exits 2, so a dry run never reaches Azure.
+exec python3 "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/appliance/tests/fake_az.py" "$@"

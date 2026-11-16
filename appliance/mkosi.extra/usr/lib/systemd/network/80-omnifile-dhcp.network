@@ -1,0 +1,8 @@
+# Until the setup wizard writes the site's network config (/etc/systemd/network/),
+# every wired interface takes DHCP.
+[Match]
+Type=ether
+Name=en* eth*
+
+[Network]
+DHCP=yes

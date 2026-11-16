@@ -1,0 +1,449 @@
+name: E2E (M1, M2, M4 and M5 exit tests)
+
+# The M1 exit test (tests/e2e/exit_test.sh) on one GitHub runner, installed the
+# way the dev VM installs it (dev/scripts/install-*.sh):
+#   - Ganesha V15.6 + FSAL_OMNI from the fsal/build image (the pinned build
+#     the FSAL suite tests), run natively under its real systemd unit
+#     (fsal/systemd/nfs-ganesha-omni.service), never --privileged;
+#   - omnifile-edge built here, under its unit, on an xfs loop volume;
+#   - Postgres 17 (service container), the sim Azure Blob facade, enrol, api
+#     and worker as systemd units;
+#   - NFSv3/4.1/4.2 mounts of the runner's own exports.
+# The same job then runs the NFS half of the M5 exit test
+# (tests/e2e/m5_exit_test.sh) on that stack: files seeded from the sim
+# facade's S3 sim, read over NFSv3 and v4 through libnfs (fsal/tests/nfsc.py),
+# and SMB Previous Versions of a folder through a standalone smbd and the
+# daemon's smb-guard.
+#
+# What one hosted runner cannot give, compared with the dev VM (tests/e2e/run.sh):
+#   - no AD domain controller: shares use sec=sys, as the dev VM run does;
+#     identity and Kerberos are M2;
+#   - the runner kernel, not Ubuntu 26.04's 7.0 appliance kernel. M1 needs
+#     only FAN_CLOSE_WRITE (detector), xattrs, xfs and the NFS client; the
+#     pre-content events of the M2 smb-guard are not exercised;
+#   - the NFS client and port 2049 must be usable on the runner. If the
+#     kernel's NFS client is missing the job fails at "mounts", visibly.
+#
+# The `m2` job runs the M2 exit test (tests/e2e/m2_exit_test.sh) on one runner
+# with a Samba AD DC in a container (dev/scripts/dc-provision.sh with
+# DC_CONTAINER=1: realm OMNI.TEST, the dev seed users and groups). The runner
+# joins it (dev/scripts/edge-provision.sh) and serves SMB from the product
+# smb.conf (install-samba.sh), with the smb-guard inside the daemon. Gaps
+# compared with the dev VMs:
+#   - the runner's kernel must have fanotify pre-content events (>= 6.14;
+#     Ubuntu 26.04's 7.0 does); without them the daemon refuses to start and
+#     the job fails at "start the daemon", visibly. Both jobs need this: the
+#     daemon always starts the smb-guard;
+#   - the DC is a container on the docker bridge, not a separate machine;
+#   - SMB and NFS clients run on the server itself (loopback), and the flood
+#     is E2E_FLOOD local readers through the integrated daemon. The full
+#     17,000-reader flood and the kill -9 loops against the guard library run
+#     in smbguard.yml (A-suite);
+#   - no Windows client (STATUS_PENDING, Explorer): pilot 1 on site.
+
+#
+# The `m4` job runs the M4 exit test (tests/e2e/m4_exit_test.sh) on one runner with no edge
+# and no kernel features: Postgres 17 (service container), sim_http on the virtual clock,
+# api (mutual TLS), web (dev OIDC issuer, the built portal), worker, the fake Graph and Bot
+# Connector, the real relay (relay/src) and Playwright with chromium. The dev-VM run with a
+# real SMB stub read stays a manual step (docs/milestones/M4.md, results).
+#
+# `changes` (cheap, ready PRs only) says which of the lanes a PR's paths need, so a
+# portal- or relay-only change runs `m4` but not the M1/M2 lanes, and an edge-only change
+# runs M1/M2 but not `m4`. workflow_dispatch runs everything.
+
+# Manual only: the repo has no GitHub-hosted runners (owner's choice, for cost),
+# so lanes run locally. Run this one from the Actions tab when runners exist.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # Failure diagnostics, uploaded as an artifact: full journals of the units,
+  # the Ganesha log, kernel messages, the test's work directory (JSON results,
+  # not the multi-MiB source patterns) and the installed configuration.
+  DIAG: |
+    set +e
+    mkdir -p "$OUT"
+    for u in $UNITS; do
+      journalctl -u "$u" --no-pager -o short-precise >"$OUT/journal-$u.log" 2>&1
+      systemctl status "$u" --no-pager -l >"$OUT/status-$u.txt" 2>&1
+      systemctl cat "$u" >"$OUT/unit-$u.txt" 2>&1
+    done
+    journalctl -k --no-pager -o short-precise >"$OUT/kernel.log" 2>&1
+    cp -a /var/log/ganesha* /opt/ganesha/var/log "$OUT/" 2>/dev/null
+    cp -a /etc/ganesha "$OUT/etc-ganesha" 2>/dev/null
+    for d in $WORKDIRS; do
+      [ -d "$d" ] && find "$d" -maxdepth 1 -type f -size -4M -exec cp {} "$OUT/" \;
+    done
+    ls -la /run/omnifile /srv/omnifile/data >"$OUT/ls.txt" 2>&1
+    findmnt >"$OUT/findmnt.txt" 2>&1
+    chmod -R a+rX "$OUT"
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Which lanes
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      edge: ${{ steps.paths.outputs.edge }}
+      m4: ${{ steps.paths.outputs.m4 }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - id: paths
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT" != pull_request ]; then
+            printf 'edge=true\nm4=true\n' >>"$GITHUB_OUTPUT"; exit 0
+          fi
+          files=$(git diff --name-only "$BASE...$HEAD")
+          printf '%s\n' "$files"
+          has() { printf '%s\n' "$files" | grep -Eq "$1" && echo true || echo false; }
+          # M1/M2: the edge, the service, their dev scripts and e2e files (not M4's own).
+          echo "edge=$(has '^(edge/|fsal/|service/|dev/scripts/|dev/edge/|tests/e2e/(e2e\.py|exit_test\.sh|m2_|m3|m5_|run\.sh)|\.github/workflows/e2e\.yml)')" >>"$GITHUB_OUTPUT"
+          # M4: the service, the relay, the portal, its dev stack and tests.
+          echo "m4=$(has '^(service/|relay/|portal/|dev/m4/|tests/e2e/m4|\.github/workflows/e2e\.yml)')" >>"$GITHUB_OUTPUT"
+
+  e2e:
+    name: M1 exit test (one machine)
+    needs: changes
+    # Heavy lane: skipped on draft PRs (see docs/BUILD-PLAN.md, "CI cost").
+    if: ${{ !github.event.pull_request.draft && needs.changes.outputs.edge == 'true' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    env:
+      IMAGE: omnifile-ganesha:ci
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: omnifile
+          POSTGRES_PASSWORD: omnifile
+          POSTGRES_DB: omnifile
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U omnifile"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          workspaces: edge
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Ganesha toolchain image (cached, shared with fsal.yml)
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: fsal
+          file: fsal/build/Containerfile
+          tags: ${{ env.IMAGE }}
+          load: true
+          cache-from: type=gha,scope=fsal-ganesha
+          cache-to: type=gha,scope=fsal-ganesha,mode=max
+
+      - name: Kernel, packages, xfs data volume
+        run: |
+          uname -a
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xfsprogs attr nfs-common rpcbind util-linux libnfs-utils nftables conntrack >/dev/null
+          # M5 step 7 runs its own smbd (Previous Versions through the smb-guard).
+          sudo apt-get install -y -qq samba samba-vfs-modules samba-common-bin smbclient >/dev/null
+          sudo systemctl disable --now smbd nmbd 2>/dev/null || true
+          sudo modprobe nfs || true
+          truncate -s 16G "$RUNNER_TEMP/data.img"
+          mkfs.xfs -q -L omni-data "$RUNNER_TEMP/data.img"
+          sudo mkdir -p /srv/omnifile/data /var/lib/omnifile
+          sudo mount -o loop,noatime "$RUNNER_TEMP/data.img" /srv/omnifile/data
+          findmnt /srv/omnifile/data
+
+      - name: Install Ganesha + FSAL_OMNI (artefacts from the image)
+        run: |
+          IMAGE=$IMAGE dev/scripts/build-artifacts.sh
+          sudo REPO="$PWD" dev/scripts/install-ganesha.sh "$PWD/dev/.artifacts"
+
+      - name: Build and install omnifile-edge
+        working-directory: edge
+        run: |
+          cargo build --release --locked -p omnifile-edge
+          # The share stanza M5 step 7 serves (ShareConfig::render_smb).
+          cargo build --release --locked -p omnifile-acl --example omniacl
+          sudo REPO="$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/dev/scripts/install-edge.sh" "$PWD/target/release/omnifile-edge"
+
+      - name: Install the service side (sim, enrol, api, worker)
+        run: |
+          sudo env "PATH=$PATH" REPO="$PWD" \
+            OMNIFILE_DATABASE_URL=postgresql://omnifile:omnifile@127.0.0.1:5432/omnifile \
+            dev/scripts/install-service.sh
+
+      - name: M1 exit test
+        run: sudo E2E_RESULTS="$PWD/e2e-results.md" tests/e2e/exit_test.sh
+
+      # M5 step 8: vfs_omnifile_prevver (samba-vfs/, GPL-3, decision 36): built inside the
+      # Samba release matching this smbd (pinned SHA-256), linked against nothing.
+      - name: Build vfs_omnifile_prevver
+        run: |
+          set -euo pipefail
+          sudo apt-get install -y -qq --no-install-recommends build-essential python3-dev \
+            libgnutls28-dev flex bison perl pkg-config zlib1g-dev libtirpc-dev libacl1-dev \
+            libpopt-dev libicu-dev libparse-yapp-perl libreadline-dev >/dev/null
+          samba-vfs/build.sh
+
+      - name: M5 exit test (NFS half)
+        run: sudo E2E_RESULTS="$PWD/m5-results.md" tests/e2e/m5_exit_test.sh
+
+      - name: Results
+        if: always()
+        run: |
+          cat e2e-results.md 2>/dev/null >>"$GITHUB_STEP_SUMMARY" || echo "no results file" >>"$GITHUB_STEP_SUMMARY"
+          cat m5-results.md 2>/dev/null >>"$GITHUB_STEP_SUMMARY" || true
+
+      - name: Logs on failure
+        if: failure()
+        run: |
+          for u in omnifile-edge nfs-ganesha-omni omnifile-dev-api omnifile-dev-enrol omnifile-dev-sim omnifile-dev-worker; do
+            echo "::group::$u"; sudo journalctl -u "$u" --no-pager -n 300 || true; echo "::endgroup::"
+          done
+          sudo env UNITS="omnifile-edge nfs-ganesha-omni omnifile-dev-api omnifile-dev-enrol omnifile-dev-sim omnifile-dev-worker rpcbind" \
+            WORKDIRS="/var/tmp/omnifile-e2e" OUT="$RUNNER_TEMP/diag" bash -c "$DIAG"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: e2e-results
+          path: |
+            e2e-results.md
+            m5-results.md
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: failure()
+        with:
+          name: e2e-diagnostics
+          path: ${{ runner.temp }}/diag
+          if-no-files-found: ignore
+
+  m2:
+    name: M2 exit test (AD in a container, SMB + smb-guard + Kerberos)
+    needs: changes
+    # Heavy lane: skipped on draft PRs (see docs/BUILD-PLAN.md, "CI cost").
+    if: ${{ !github.event.pull_request.draft && needs.changes.outputs.edge == 'true' }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 90
+    env:
+      IMAGE: omnifile-ganesha:ci
+      AD_ENV_FILE: ${{ github.workspace }}/dev/.secrets/ad.env
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: omnifile
+          POSTGRES_PASSWORD: omnifile
+          POSTGRES_DB: omnifile
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U omnifile"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          workspaces: edge
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Ganesha toolchain image (cached, shared with fsal.yml)
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: fsal
+          file: fsal/build/Containerfile
+          tags: ${{ env.IMAGE }}
+          load: true
+          cache-from: type=gha,scope=fsal-ganesha
+          cache-to: type=gha,scope=fsal-ganesha,mode=max
+
+      - name: Kernel (fanotify pre-content events)
+        run: |
+          uname -a
+          grep -E 'CONFIG_FANOTIFY(_ACCESS_PERMISSIONS)?=' "/boot/config-$(uname -r)" || true
+
+      - name: Samba AD DC in a container
+        run: |
+          set -euo pipefail
+          docker run -d --name omni-dc --privileged --hostname dc1 \
+            -v "$PWD/dev/scripts:/dcs:ro" ubuntu:26.04 sleep infinity
+          docker exec omni-dc bash -c 'apt-get update -qq >/dev/null && apt-get install -y -qq iproute2 >/dev/null'
+          docker exec -e DC_CONTAINER=1 omni-dc bash /dcs/dc-provision.sh
+          install -d -m 700 dev/.secrets
+          (umask 077; docker exec omni-dc cat /var/lib/omnifile-dev/ad.env >"$AD_ENV_FILE")
+          grep -c '^AD_PASSWORD_' "$AD_ENV_FILE"
+
+      - name: Join the runner to the domain (xfs volumes, winbind, Kerberos)
+        run: sudo env AD_ENV_FILE="$AD_ENV_FILE" DATA_SIZE=24G CACHE_SIZE=2G dev/scripts/edge-provision.sh
+
+      - name: Install Ganesha + FSAL_OMNI (artefacts from the image)
+        run: |
+          IMAGE=$IMAGE dev/scripts/build-artifacts.sh
+          sudo REPO="$PWD" dev/scripts/install-ganesha.sh "$PWD/dev/.artifacts"
+
+      - name: Build and install omnifile-edge (smb-guard inside), guardctl, omniacl
+        working-directory: edge
+        run: |
+          cargo build --release --locked -p omnifile-edge -p omnifile-smbguard --bins
+          cargo build --release --locked -p omnifile-acl --example omniacl
+          sudo REPO="$GITHUB_WORKSPACE" "$GITHUB_WORKSPACE/dev/scripts/install-edge.sh" "$PWD/target/release/omnifile-edge"
+
+      - name: Install the service side (sim, enrol, api, worker)
+        run: |
+          sudo env "PATH=$PATH" REPO="$PWD" \
+            OMNIFILE_DATABASE_URL=postgresql://omnifile:omnifile@127.0.0.1:5432/omnifile \
+            dev/scripts/install-service.sh
+
+      - name: Samba from the product template, nfs/ keytab
+        run: sudo env AD_ENV_FILE="$AD_ENV_FILE" REPO="$PWD" dev/scripts/install-samba.sh
+
+      - name: M2 exit test
+        run: |
+          sudo env AD_ENV_FILE="$AD_ENV_FILE" E2E_FLOOD=5000 E2E_HEAD="$GITHUB_SHA" E2E_REV="$GITHUB_REF_NAME" \
+            E2E_RESULTS="$PWD/m2-results.md" tests/e2e/m2_exit_test.sh
+
+      - name: Results
+        if: always()
+        run: |
+          cat m2-results.md 2>/dev/null >>"$GITHUB_STEP_SUMMARY" || echo "no results file" >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Logs on failure
+        if: failure()
+        run: |
+          for u in omnifile-edge nfs-ganesha-omni smbd winbind omnifile-dev-api omnifile-dev-sim omnifile-dev-worker; do
+            echo "::group::$u"; sudo journalctl -u "$u" --no-pager -n 300 || true; echo "::endgroup::"
+          done
+          echo "::group::dc"; docker exec omni-dc tail -n 100 /var/log/samba/log.samba || true; echo "::endgroup::"
+          sudo env UNITS="omnifile-edge nfs-ganesha-omni smbd winbind omnifile-dev-api omnifile-dev-enrol omnifile-dev-sim omnifile-dev-worker rpcbind rpc-gssd" \
+            WORKDIRS="/var/tmp/omnifile-m2" OUT="$RUNNER_TEMP/diag" bash -c "$DIAG"
+          docker exec omni-dc cat /var/log/samba/log.samba 2>&1 | sudo tee "$RUNNER_TEMP/diag/dc-log.samba" >/dev/null || true
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: m2-results
+          path: m2-results.md
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: failure()
+        with:
+          name: m2-diagnostics
+          path: ${{ runner.temp }}/diag
+          if-no-files-found: ignore
+
+  m4:
+    name: M4 exit test (sim, fakes, real relay, Playwright)
+    needs: changes
+    # Heavy lane: skipped on draft PRs (see docs/BUILD-PLAN.md, "CI cost").
+    if: ${{ !github.event.pull_request.draft && needs.changes.outputs.m4 == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      M4_WORK: ${{ github.workspace }}/m4-work
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: omnifile
+          POSTGRES_PASSWORD: omnifile
+          POSTGRES_DB: omnifile
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U omnifile"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            portal/package-lock.json
+            portal/e2e/package-lock.json
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      # The `web` image (service/Containerfile.web): built, not pushed, so a broken Node or
+      # Python stage fails here. The test below runs the same code from the checkout.
+      - name: Build the web image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: service/Containerfile.web
+          tags: omnifile-web:ci
+          push: false
+          cache-from: type=gha,scope=omnifile-web
+          cache-to: type=gha,scope=omnifile-web,mode=max
+
+      - name: Playwright and chromium (with its system packages)
+        working-directory: portal/e2e
+        run: |
+          npm ci --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: M4 exit test
+        run: |
+          mkdir -p "$M4_WORK"
+          OMNIFILE_DATABASE_URL=postgresql://omnifile:omnifile@127.0.0.1:5432/omnifile \
+            E2E_HEAD="$GITHUB_SHA" E2E_REV="$GITHUB_REF_NAME" E2E_RESULTS="$PWD/m4-results.md" \
+            tests/e2e/m4_exit_test.sh
+
+      - name: Results
+        if: always()
+        run: |
+          cat m4-results.md 2>/dev/null >>"$GITHUB_STEP_SUMMARY" || echo "no results file" >>"$GITHUB_STEP_SUMMARY"
+
+      - name: Logs on failure
+        if: failure()
+        run: |
+          for f in "$M4_WORK"/logs/*.log; do
+            echo "::group::$(basename "$f")"; tail -n 300 "$f" || true; echo "::endgroup::"
+          done
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: m4-results
+          path: m4-results.md
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: failure()
+        with:
+          name: m4-diagnostics
+          # Process logs and Playwright traces; not the PKI or the secrets.
+          path: |
+            ${{ env.M4_WORK }}/logs
+            ${{ env.M4_WORK }}/playwright
+            ${{ env.M4_WORK }}/m4-service.md
+          if-no-files-found: ignore

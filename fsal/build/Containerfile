@@ -1,0 +1,105 @@
+# syntax=docker/dockerfile:1
+# SPDX-License-Identifier: LGPL-3.0-or-later
+#
+# Pinned NFS-Ganesha toolchain for building and smoke-testing FSAL_OMNI.
+#
+#   docker build -f fsal/build/Containerfile -t omnifile-ganesha fsal
+#
+# The build context is fsal/ and only fsal/GANESHA_VERSION is copied in, so
+# editing the module never invalidates the (slow) Ganesha layers.
+#
+# The image holds all three trees an out-of-tree FSAL needs, because no
+# distribution ships Ganesha headers (filer spike B, "Build instructions"):
+#   $GANESHA_SRC     source tree   (src/include, include/os/linux, libntirpc/ntirpc)
+#   $GANESHA_BUILD   build tree    (generated include/config.h)
+#   $GANESHA_PREFIX  installed tree (bin/ganesha.nfsd, lib/libganesha_nfsd.so, lib/ganesha/)
+# plus the runtime tools the smoke test needs (rpcbind, showmount, mount.nfs).
+#
+# It builds natively on x86_64 (CI) and arm64 (Apple silicon); nothing in it is
+# architecture-specific.
+
+# Ubuntu 26.04 LTS, matching the appliance OS (decision 26). Pinned to the
+# multi-arch index digest so amd64 and arm64 resolve the same release.
+ARG UBUNTU_IMAGE=ubuntu:26.04@sha256:f144425ff09be612d6d9ad965196e9cdc23dae1f42110a8a11a3e9a8198759f7
+
+FROM ${UBUNTU_IMAGE} AS toolchain
+
+ENV DEBIAN_FRONTEND=noninteractive
+# Ganesha's build dependencies, as used by spikes/filer/fsal/build.sh
+# (libssl-dev is needed by cmake but missing from upstream's lists), plus
+# git for the source checkout and the smoke test's runtime tools (netbase
+# provides /etc/protocols and /etc/services, without which mount.nfs and
+# showmount fail with "Failed to find 'tcp' protocol" / "Unknown host";
+# xfsprogs provides xfs_io, whose "reflink" issues a raw FICLONE ioctl;
+# acl provides setfacl for the guard suite's POSIX ACL checks; libnfs-utils
+# brings libnfs, the userspace NFS client of fsal/tests/nfsc.py).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      build-essential cmake bison flex pkg-config git ca-certificates \
+      libkrb5-dev libcap-dev libblkid-dev libdbus-1-dev liburcu-dev \
+      libjemalloc-dev libnsl-dev libacl1-dev uuid-dev libnfsidmap-dev \
+      libsqlite3-dev libssl-dev libattr1-dev \
+      nfs-common rpcbind netbase attr acl procps xfsprogs e2fsprogs \
+      libnfs-utils \
+ && rm -rf /var/lib/apt/lists/*
+
+ENV GANESHA_SRC=/usr/src/nfs-ganesha/src \
+    GANESHA_BUILD=/usr/src/nfs-ganesha-build \
+    GANESHA_PREFIX=/opt/ganesha \
+    GANESHA_LIB=/opt/ganesha/lib
+
+COPY GANESHA_VERSION /usr/src/GANESHA_VERSION
+
+# Fetch the pinned tag and refuse to continue if it no longer points at the
+# pinned commit (tags can be moved; commits cannot). Only the libntirpc
+# submodule is needed: libkmip is used by FSAL_CEPH fscrypt only.
+RUN set -eu; . /usr/src/GANESHA_VERSION; \
+    git clone -q --depth 1 --branch "$GANESHA_TAG" \
+        https://github.com/nfs-ganesha/nfs-ganesha.git /usr/src/nfs-ganesha; \
+    cd /usr/src/nfs-ganesha; \
+    got=$(git rev-parse HEAD); \
+    [ "$got" = "$GANESHA_COMMIT" ] || { echo "tag $GANESHA_TAG is $got, pinned $GANESHA_COMMIT" >&2; exit 1; }; \
+    git submodule update -q --init --depth 1 src/libntirpc; \
+    got=$(git -C src/libntirpc rev-parse HEAD); \
+    [ "$got" = "$NTIRPC_COMMIT" ] || { echo "libntirpc is $got, pinned $NTIRPC_COMMIT" >&2; exit 1; }
+
+# The cmake options of the filer spike (spikes/filer/fsal/build.sh), plus
+# ENABLE_VFS_POSIX_ACL. FSAL_VFS never switches to the caller's credentials,
+# so the kernel never evaluates POSIX ACLs for NFS operations. Ganesha's own
+# access check is the only one, and without this option it checks mode bits
+# only. A user granted access through a named AD-group ACL entry (decision
+# 28, docs/design/access-control.md section 1) would then be denied over NFS.
+# libacl (LGPL-2.1+, from libacl1-dev) is linked into Ganesha only. cmake
+# silently turns the option off if libacl or sys/acl.h is missing, so the
+# build checks for it in CMakeCache and config.h.
+# ALLOCATOR=jemalloc is Ganesha's default, but cmake silently falls back to
+# libc when jemalloc is missing, and FSAL_OMNI links -ljemalloc to match, so
+# it is stated here and checked after the build.
+RUN set -eu; mkdir -p "$GANESHA_BUILD"; cd "$GANESHA_BUILD"; \
+    cmake "$GANESHA_SRC" -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+        -DCMAKE_INSTALL_PREFIX="$GANESHA_PREFIX" -DSYSCONFDIR="$GANESHA_PREFIX/etc" \
+        -DALLOCATOR=jemalloc -DENABLE_VFS_POSIX_ACL=ON \
+        -DUSE_FSAL_PROXY_V4=OFF -DUSE_FSAL_PROXY_V3=OFF -DUSE_FSAL_LUSTRE=OFF \
+        -DUSE_FSAL_KVSFS=OFF -DUSE_FSAL_CEPH=OFF -DUSE_FSAL_GPFS=OFF \
+        -DUSE_FSAL_GLUSTER=OFF -DUSE_FSAL_RGW=OFF -DUSE_FSAL_MEM=OFF \
+        -DUSE_FSAL_SAUNAFS=OFF -DUSE_FSAL_NULL=ON -DUSE_MONITORING=OFF \
+        -DUSE_9P=OFF -DUSE_GUI_ADMIN_TOOLS=OFF -DUSE_RADOS_RECOV=OFF \
+        -DRADOS_URLS=OFF -DUSE_LTTNG=OFF -D_MSPAC_SUPPORT=OFF -DUSE_UNWIND=OFF \
+        -DUSE_DBUS=ON >/dev/null; \
+    grep -qx 'ALLOCATOR:STRING=jemalloc' CMakeCache.txt; \
+    grep -qx 'ENABLE_VFS_POSIX_ACL:BOOL=ON' CMakeCache.txt; \
+    make -j"$(nproc)" >/dev/null; \
+    make install >/dev/null; \
+    mkdir -p "$GANESHA_PREFIX/var/lib/nfs/ganesha" "$GANESHA_PREFIX/var/run/ganesha"; \
+    echo "$GANESHA_LIB" > /etc/ld.so.conf.d/ganesha.conf; ldconfig; \
+    ldd "$GANESHA_PREFIX/bin/ganesha.nfsd" | grep -q libjemalloc \
+      || { echo "ganesha.nfsd is not linked with jemalloc" >&2; exit 1; }; \
+    test -f "$GANESHA_BUILD/include/config.h"; \
+    grep -q '^#define ENABLE_VFS_POSIX_ACL' "$GANESHA_BUILD/include/config.h" \
+      || { echo "VFS POSIX ACL support is off: NFS would check mode bits only" >&2; exit 1; }; \
+    test -f "$GANESHA_LIB/ganesha/libfsalvfs.so"
+# ganesha.nfsd itself is not run here: under qemu user-mode emulation (an
+# amd64 build on an arm64 Mac) it segfaults at startup, so a run check would
+# make the image non-buildable cross-arch. fsal/tests/smoke.sh runs it natively.
+
+WORKDIR /fsal

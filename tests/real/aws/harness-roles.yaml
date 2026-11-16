@@ -1,0 +1,251 @@
+# The real-AWS harness's fixed IAM: the owner reviews it and deploys it once, from their own
+# admin session, before the first AWS run (tests/real/aws/README.md):
+#
+#   aws cloudformation deploy --region us-west-2 --stack-name omnifile-real-harness-roles \
+#     --template-file tests/real/aws/harness-roles.yaml --capabilities CAPABILITY_NAMED_IAM
+#
+# It makes what the harness's IAM user may then only use, never change
+# (tests/real/aws/harness-policy.json allows no IAM write on any of it):
+# - the role S3 Batch Operations runs restores and checksums as, passed by the harness to
+#   batchoperations.s3.amazonaws.com only;
+# - the probe's role and instance profile, passed to ec2.amazonaws.com only;
+# - two permissions boundaries: one on those two roles, and the one every role the harness
+#   makes itself (each run's edge role) must carry, which allows reading the runs' objects and
+#   nothing else.
+# Everything they reach is named ofreal-rr-*: the runs' buckets and queues. Written with the
+# long-form intrinsic functions (Fn::Sub, Fn::GetAtt) so plain YAML parsers read it too.
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  OmniFile real-AWS harness: the fixed batch and probe roles and the permissions boundaries the
+  harness's IAM user works within. Deployed once by the account owner.
+
+Resources:
+  BaseBoundary:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: omnifile-real-base-boundary
+      Path: /omnifile-real-base/
+      Description: The most the batch and probe roles can ever do, whatever their own policies say.
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: TheRunsObjects
+            Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:GetObjectVersion
+              - s3:RestoreObject
+              - s3:PutObject
+              - s3:GetBucketLocation
+              - s3:ListBucket
+              - s3:ListBucketVersions
+            Resource:
+              - arn:aws:s3:::ofreal-rr-*
+              - arn:aws:s3:::ofreal-rr-*/*
+          - Sid: TheRunsQueues
+            Effect: Allow
+            Action:
+              - sqs:ReceiveMessage
+              - sqs:DeleteMessage
+              - sqs:GetQueueAttributes
+            Resource:
+              Fn::Sub: arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:ofreal-rr-*
+          - Sid: BatchJobs
+            Effect: Allow
+            Action:
+              - s3:CreateJob
+              - s3:DescribeJob
+            Resource: "*"
+          - Sid: PassOnlyTheBatchRole
+            Effect: Allow
+            Action: iam:PassRole
+            # No iam:PassedToService condition: S3 Control's CreateJob is denied under one in
+            # either form (real runs, 2026-11-14). The batch role's trust policy below is what
+            # keeps it to S3 Batch Operations.
+            Resource:
+              Fn::Sub: arn:aws:iam::${AWS::AccountId}:role/omnifile-real-base/omnifile-real-batch-ops
+          - Sid: TheSsmAgent
+            Effect: Allow
+            Action:
+              - ssm:UpdateInstanceInformation
+              - ssm:ListInstanceAssociations
+              - ssm:ListAssociations
+              - ssm:DescribeAssociation
+              - ssm:UpdateAssociationStatus
+              - ssm:UpdateInstanceAssociationStatus
+              - ssm:GetDocument
+              - ssm:DescribeDocument
+              - ssm:PutInventory
+              - ssm:PutComplianceItems
+              - ssmmessages:CreateControlChannel
+              - ssmmessages:CreateDataChannel
+              - ssmmessages:OpenControlChannel
+              - ssmmessages:OpenDataChannel
+              - ec2messages:AcknowledgeMessage
+              - ec2messages:DeleteMessage
+              - ec2messages:FailMessage
+              - ec2messages:GetEndpoint
+              - ec2messages:GetMessages
+              - ec2messages:SendReply
+            Resource: "*"
+
+  EdgeBoundary:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: omnifile-real-edge-boundary
+      Path: /omnifile-real-base/
+      Description: >-
+        Every role the harness's user makes (each run's edge role) must carry this: it can read
+        the runs' objects, and nothing else, whatever policy the role is given.
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: ReadTheRunsObjectsOnly
+            Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:GetObjectVersion
+            Resource: arn:aws:s3:::ofreal-rr-*/*
+
+  BatchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: omnifile-real-batch-ops
+      Path: /omnifile-real-base/
+      Description: S3 Batch Operations restores and checksums the runs' objects as this role.
+      MaxSessionDuration: 3600
+      PermissionsBoundary:
+        Ref: BaseBoundary
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: batchoperations.s3.amazonaws.com
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                aws:SourceAccount:
+                  Ref: AWS::AccountId
+      Policies:
+        - PolicyName: batch-ops
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:RestoreObject
+                  - s3:PutObject
+                  - s3:GetBucketLocation
+                Resource:
+                  - arn:aws:s3:::ofreal-rr-*
+                  - arn:aws:s3:::ofreal-rr-*/*
+      Tags:
+        - Key: omnifile-base
+          Value: harness-roles
+
+  ProbeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: omnifile-real-probe
+      Path: /omnifile-real-base/
+      Description: The run's probe instance, inside the run's VPC.
+      MaxSessionDuration: 3600
+      PermissionsBoundary:
+        Ref: BaseBoundary
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: probe
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: TheRunsBuckets
+                Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:GetObjectVersion
+                  - s3:ListBucketVersions
+                Resource:
+                  - arn:aws:s3:::ofreal-rr-*
+                  - arn:aws:s3:::ofreal-rr-*/*
+              - Sid: TheRunsQueue
+                Effect: Allow
+                Action:
+                  - sqs:ReceiveMessage
+                  - sqs:DeleteMessage
+                  - sqs:GetQueueAttributes
+                Resource:
+                  Fn::Sub: arn:aws:sqs:${AWS::Region}:${AWS::AccountId}:ofreal-rr-*
+              - Sid: BatchJobs
+                Effect: Allow
+                Action:
+                  - s3:CreateJob
+                  - s3:DescribeJob
+                Resource: "*"
+              - Sid: PassOnlyTheBatchRole
+                Effect: Allow
+                Action: iam:PassRole
+                Resource:
+                  Fn::GetAtt: [BatchRole, Arn]
+        - PolicyName: ssm-agent
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: RunCommandOnly
+                Effect: Allow
+                Action:
+                  - ssm:UpdateInstanceInformation
+                  - ssm:ListInstanceAssociations
+                  - ssm:ListAssociations
+                  - ssm:DescribeAssociation
+                  - ssm:UpdateAssociationStatus
+                  - ssm:UpdateInstanceAssociationStatus
+                  - ssm:GetDocument
+                  - ssm:DescribeDocument
+                  - ssm:PutInventory
+                  - ssm:PutComplianceItems
+                  - ssmmessages:CreateControlChannel
+                  - ssmmessages:CreateDataChannel
+                  - ssmmessages:OpenControlChannel
+                  - ssmmessages:OpenDataChannel
+                  - ec2messages:AcknowledgeMessage
+                  - ec2messages:DeleteMessage
+                  - ec2messages:FailMessage
+                  - ec2messages:GetEndpoint
+                  - ec2messages:GetMessages
+                  - ec2messages:SendReply
+                Resource: "*"
+      Tags:
+        - Key: omnifile-base
+          Value: harness-roles
+
+  ProbeProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: omnifile-real-probe
+      Path: /omnifile-real-base/
+      Roles:
+        - Ref: ProbeRole
+
+Outputs:
+  BatchRoleArn:
+    Value:
+      Fn::GetAtt: [BatchRole, Arn]
+  ProbeRoleArn:
+    Value:
+      Fn::GetAtt: [ProbeRole, Arn]
+  ProbeInstanceProfileArn:
+    Value:
+      Fn::GetAtt: [ProbeProfile, Arn]
+  EdgeBoundaryArn:
+    Value:
+      Ref: EdgeBoundary

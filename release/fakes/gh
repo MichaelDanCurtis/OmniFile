@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+"""A local stand-in for the `gh` commands a release runs (release/runbook.sh --dry-run). No GitHub.
+
+It keeps releases in $GH_FAKE_ROOT/<owner>/<repo>/<tag>/<asset>, with <owner>/<repo>/LATEST naming the latest tag:
+the layout appliance/tests/gh-releases-stub.py serves the way GitHub Releases does, so what a dry run "publishes"
+is what a box downloads in appliance/tests/signed-update.sh. Every call is appended to $GH_FAKE_LOG.
+
+    gh api repos/OWNER/REPO                      {"visibility": "public", "private": false, "has_issues": true}
+    gh release view TAG --repo R [--json assets] the release's assets, or "release not found" (exit 1)
+    gh release create TAG [FILE...] --repo R [--draft] [--target SHA] [--latest] [--title T] [--notes-file F]
+                                                 a draft is never LATEST; <tag>.target records the commit
+    gh release upload TAG FILE... --repo R [--clobber]
+    gh release edit TAG --repo R [--draft=false] [--latest] [--title T] [--notes-file F]
+    gh release delete-asset TAG NAME --repo R --yes
+
+Anything else exits 2, so a dry run can never fall through to a real call. Asset names are flat, as on GitHub.
+"""
+
+import json
+import os
+import shutil
+import sys
+from pathlib import Path
+
+ROOT = Path(os.environ.get("GH_FAKE_ROOT", "gh-fake"))
+LOG = os.environ.get("GH_FAKE_LOG", os.devnull)
+
+
+def opts(args):
+    """Split argv into positionals and --flags (with values where gh takes one)."""
+    takes = {"--repo", "--title", "--notes-file", "--json", "--notes", "--target"}
+    pos, kv, flags = [], {}, set()
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a in takes:
+            kv[a] = args[i + 1]
+            i += 2
+        elif a.startswith("--"):
+            flags.add(a)
+            i += 1
+        else:
+            pos.append(a)
+            i += 1
+    return pos, kv, flags
+
+
+def rel_dir(repo, tag):
+    owner, _, name = repo.partition("/")
+    if not owner or not name or "/" in name or ".." in (owner, name, tag):
+        raise SystemExit(f"fake gh: bad repository or tag {repo!r} {tag!r}")
+    return ROOT / owner / name / tag
+
+
+def put(d, files, clobber):
+    d.mkdir(parents=True, exist_ok=True)
+    for f in files:
+        src = Path(f.split("#", 1)[0])
+        dst = d / src.name
+        if dst.exists() and not clobber:
+            print(f"fake gh: asset {src.name} already exists", file=sys.stderr)
+            return 1
+        shutil.copyfile(src, dst)
+    return 0
+
+
+def main(argv):
+    with open(LOG, "a") as log:
+        log.write("gh " + " ".join(argv) + "\n")
+    if argv[:1] == ["api"] and len(argv) == 2 and argv[1].startswith("repos/"):
+        print(json.dumps({"full_name": argv[1][6:], "visibility": "public", "private": False, "has_issues": True}))
+        return 0
+    if argv[:1] != ["release"] or len(argv) < 3:
+        print(f"fake gh: unsupported {argv}", file=sys.stderr)
+        return 2
+    cmd, (pos, kv, flags) = argv[1], opts(argv[2:])
+    repo = kv.get("--repo")
+    if not repo or not pos:
+        print("fake gh: --repo and a tag are required", file=sys.stderr)
+        return 2
+    tag, files = pos[0], pos[1:]
+    d = rel_dir(repo, tag)
+    if cmd == "view":
+        if not d.is_dir():
+            print(f"release not found", file=sys.stderr)
+            return 1
+        assets = [{"name": p.name, "size": p.stat().st_size} for p in sorted(d.iterdir()) if p.is_file()]
+        print(json.dumps({"tagName": tag, "assets": assets}))
+        return 0
+    if cmd == "create":
+        if d.is_dir():
+            print(f"fake gh: release {tag} already exists", file=sys.stderr)
+            return 1
+        rc = put(d, files, False)
+        notes = kv.get("--notes-file")
+        if notes:
+            (d.parent / f"{tag}.notes.md").write_text(Path(notes).read_text())
+        if kv.get("--target"):
+            (d.parent / f"{tag}.target").write_text(kv["--target"] + "\n")
+        if "--draft" in flags:
+            (d.parent / f"{tag}.draft").write_text("")  # not public, and never the latest, until edited
+        elif "--latest" in flags or not (d.parent / "LATEST").exists():
+            (d.parent / "LATEST").write_text(tag + "\n")
+        print(f"https://github.com/{repo}/releases/tag/{tag}")
+        return rc
+    if cmd == "upload":
+        if not d.is_dir():
+            print("release not found", file=sys.stderr)
+            return 1
+        return put(d, files, "--clobber" in flags)
+    if cmd == "edit":
+        if not d.is_dir():
+            print("release not found", file=sys.stderr)
+            return 1
+        if kv.get("--notes-file"):
+            (d.parent / f"{tag}.notes.md").write_text(Path(kv["--notes-file"]).read_text())
+        if "--draft=false" in flags:
+            (d.parent / f"{tag}.draft").unlink(missing_ok=True)
+        if "--latest" in flags:
+            if (d.parent / f"{tag}.draft").exists():
+                print("fake gh: a draft can't be the latest release", file=sys.stderr)
+                return 1
+            (d.parent / "LATEST").write_text(tag + "\n")
+        return 0
+    if cmd == "delete-asset" and len(pos) == 2:
+        (d / pos[1]).unlink(missing_ok=True)
+        return 0
+    print(f"fake gh: unsupported release {cmd}", file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

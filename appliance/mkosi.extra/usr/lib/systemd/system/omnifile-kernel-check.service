@@ -1,0 +1,23 @@
+# The update gate (decision 38; appliance/README.md). A new version's UKI counts as good
+# only when boot-complete.target is reached, and this unit is part of that. It checks
+# that the running kernel delivers fanotify pre-content events and honours their
+# answer, which the smb-guard depends on to fail closed. If it fails, the boot isn't
+# blessed, its tries run out, and systemd-boot goes back to the previous version.
+[Unit]
+Description=OmniFile: the kernel supports the smb-guard (fanotify pre-content events)
+After=local-fs.target systemd-tmpfiles-setup.service
+Before=boot-complete.target
+DefaultDependencies=no
+Conflicts=shutdown.target
+Before=shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/smbguard-tool kernel-check /var/lib/omnifile/kernel-check
+StandardOutput=journal+console
+
+[Install]
+RequiredBy=boot-complete.target
+# Every boot, counted or not, so a failure shows in `systemctl --failed`.
+WantedBy=multi-user.target

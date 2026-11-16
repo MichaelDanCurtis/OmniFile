@@ -1,0 +1,4 @@
+# AD passwords and anything else generated at provision time. Never commit.
+.secrets/
+# Build artifacts handed to install-ganesha.sh (large, rebuildable).
+.artifacts/

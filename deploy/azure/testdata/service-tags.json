@@ -1,0 +1,88 @@
+{
+  "changeNumber": "214",
+  "cloud": "Public",
+  "id": "/subscriptions/00000000-0000-0000-0000-000000000000/providers/Microsoft.Network/serviceTags/Public",
+  "name": "Public",
+  "nextLink": null,
+  "type": "Microsoft.Network/serviceTags",
+  "values": [
+    {
+      "id": "ApiManagement",
+      "name": "ApiManagement",
+      "properties": {
+        "addressPrefixes": ["192.0.2.128/25"],
+        "changeNumber": "7",
+        "networkFeatures": ["API", "NSG", "UDR", "FW"],
+        "platform": "Azure",
+        "region": "",
+        "state": "GA",
+        "systemService": "AzureApiManagement"
+      },
+      "serviceTagChangeNumber": "7"
+    },
+    {
+      "id": "AzureBotService",
+      "name": "AzureBotService",
+      "properties": {
+        "addressPrefixes": [
+          "203.0.113.128/26",
+          "198.51.100.0/24",
+          "2001:db8:1::/48",
+          "192.0.2.0/26",
+          "203.0.113.0/25",
+          "198.51.100.0/24",
+          "2001:db8:2::/48"
+        ],
+        "changeNumber": "12",
+        "networkFeatures": ["API", "NSG", "UDR", "FW"],
+        "platform": "Azure",
+        "region": "",
+        "state": "GA",
+        "systemService": "AzureBotService"
+      },
+      "serviceTagChangeNumber": "12"
+    },
+    {
+      "id": "AzureBotService.EastUS",
+      "name": "AzureBotService.EastUS",
+      "properties": {
+        "addressPrefixes": ["203.0.113.0/25", "2001:db8:2::/48"],
+        "changeNumber": "3",
+        "networkFeatures": ["API", "NSG", "UDR", "FW"],
+        "platform": "Azure",
+        "region": "eastus",
+        "state": "GA",
+        "systemService": "AzureBotService"
+      },
+      "serviceTagChangeNumber": "3"
+    },
+    {
+      "id": "AzureBotService.WestEurope",
+      "name": "AzureBotService.WestEurope",
+      "properties": {
+        "addressPrefixes": ["198.51.100.0/24", "2001:db8:1::/48"],
+        "changeNumber": "4",
+        "networkFeatures": ["API", "NSG", "UDR", "FW"],
+        "platform": "Azure",
+        "region": "westeurope",
+        "state": "GA",
+        "systemService": "AzureBotService"
+      },
+      "serviceTagChangeNumber": "4"
+    },
+    {
+      "id": "AzureCloud.westeurope",
+      "name": "AzureCloud.westeurope",
+      "properties": {
+        "addressPrefixes": ["192.0.2.64/26"],
+        "changeNumber": "40",
+        "networkFeatures": ["API", "NSG"],
+        "platform": "Azure",
+        "region": "westeurope",
+        "state": "GA",
+        "systemService": ""
+      },
+      "serviceTagChangeNumber": "40"
+    }
+  ]
+}

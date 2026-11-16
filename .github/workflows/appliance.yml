@@ -1,0 +1,182 @@
+name: appliance image (mkosi, ubuntu-26.04)
+
+# The edge appliance image (decision 38; appliance/README.md): builds it with mkosi
+# from this commit's binaries, Ganesha with FSAL_OMNI and vfs_omnifile_prevver, boots
+# it in qemu and runs appliance/tests/smoke.sh. The A/B update round
+# (appliance/tests/update-round.sh) needs three builds and a signing key, so it runs
+# only when the update_round input is set.
+#
+# The boot is TCG unless the runner exposes /dev/kvm. The disk images are not kept:
+# they are about 1.3 GB each.
+
+# Manual only: the repo has no GitHub-hosted runners (owner's choice, for cost),
+# so lanes run locally. Run this one from the Actions tab when runners exist.
+on:
+  workflow_dispatch:
+    inputs:
+      update_round:
+        description: "Also build 0.2.0 and 0.3.0 and run the A/B update round"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: appliance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    name: build and smoke-boot the appliance image
+    # Heavy lane: skipped on draft PRs (see docs/BUILD-PLAN.md, "CI cost").
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.pull_request.draft }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 150
+    env:
+      IMAGE: omnifile-ganesha:ci
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          workspaces: edge
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Ganesha toolchain image (cached, shared with fsal.yml)
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: fsal
+          file: fsal/build/Containerfile
+          tags: ${{ env.IMAGE }}
+          load: true
+          cache-from: type=gha,scope=fsal-ganesha
+          cache-to: type=gha,scope=fsal-ganesha,mode=max
+
+      - name: Packages
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq qemu-system-x86 qemu-utils ovmf gnupg swtpm sbsigntool mtools zstd \
+            python3-virt-firmware >/dev/null
+          # samba-vfs/build.sh builds inside the Samba release matching this smbd.
+          sudo apt-get install -y -qq samba --no-install-recommends >/dev/null
+          sudo apt-get install -y -qq --no-install-recommends build-essential python3-dev \
+            libgnutls28-dev flex bison perl pkg-config zlib1g-dev libtirpc-dev libacl1-dev \
+            libpopt-dev libicu-dev libparse-yapp-perl libreadline-dev >/dev/null
+          sudo chmod 666 /dev/kvm 2>/dev/null || true
+
+      - name: Components
+        run: |
+          set -euo pipefail
+          IMAGE=$IMAGE dev/scripts/build-artifacts.sh
+          (cd edge && cargo build --release --locked && \
+            cargo build --release --locked -p omnifile-acl --example omniacl)
+          samba-vfs/build.sh
+
+      - name: Test signing keys
+        run: |
+          set -euo pipefail
+          # Throwaway stand-ins for the Key Vault keys (decisions 47, 48): a P-256 update key,
+          # its image keyring (pgp_kv.py), and an RSA Secure Boot key and certificate. Every
+          # image below embeds that keyring, and every feed is signed with that key.
+          K="$RUNNER_TEMP/keys"; mkdir -m 700 "$K"
+          openssl ecparam -name prime256v1 -genkey -noout | openssl pkcs8 -topk8 -nocrypt -out "$K/update.pem"
+          python3 appliance/pgp_kv.py pubkey --signer "fake:$K/update.pem" --created 1792540800 \
+            --uid "OmniFile CI updates <ci@omnifile.invalid>" --out "$K/update-ring.pgp"
+          openssl req -x509 -newkey rsa:2048 -nodes -keyout "$K/sb.key" -out "$K/sb.crt" -days 30 \
+            -subj "/CN=OmniFile CI Secure Boot" -sha256
+          echo "KEYS=$K" >>"$GITHUB_ENV"
+
+      - name: Release tooling unit tests (feed binding, source offer)
+        run: |
+          python3 -m unittest discover -s appliance/tests -p 'test_*.py'
+          python3 -m unittest discover -s appliance/source-offer
+
+      - name: Build 0.1.0
+        run: |
+          set -euo pipefail
+          sudo -E appliance/build.sh --version 0.1.0 --pubring "$KEYS/update-ring.pgp"
+          # The image embeds the keyring of the key the feeds are signed with (Codex on #31).
+          want=$(python3 appliance/pgp_kv.py fingerprint --signer "fake:$KEYS/update.pem" --created 1792540800)
+          got=$(python3 appliance/pgp_kv.py ring-fingerprints appliance/build/stage/usr/lib/systemd/import-pubring.pgp)
+          [ "$got" = "$want" ] || { echo "the image embeds $got, the feeds are signed by $want" >&2; exit 1; }
+
+      - name: Spike guard for the kernel canary
+        working-directory: spikes/filer/guard
+        run: cargo build --release --locked
+
+      # The R3 gate (appliance/release.sh) signs a feed only after the image's own kernel
+      # passed the A-suite and the kernel canary. A release runs both in full; CI runs a
+      # quick subset, signed with the throwaway key (--allow-partial, recorded in R3-GATE).
+      - name: R3 gate (quick subset) and signing
+        run: |
+          S=(--signer "fake:$KEYS/update.pem" --key-created 1792540800 --update-ring "$KEYS/update-ring.pgp"
+             --uki-signer "fake:$KEYS/sb.key" --uki-cert "$KEYS/sb.crt" --bin-dir edge/target/release
+             --canary-bin-dir spikes/filer/guard/target/release)
+          # A subset without --allow-partial must refuse.
+          if sudo -E appliance/release.sh --out appliance/build/out "${S[@]}" --canary-only k1; then
+            echo "a partial gate signed" >&2; exit 1; fi
+          sudo -E appliance/release.sh --out appliance/build/out "${S[@]}" \
+            --a-suite-only a01,a05 --canary-only k1 --allow-partial
+          gpg --no-default-keyring --keyring "$KEYS/update-ring.pgp" --trust-model=always \
+            --verify appliance/build/out/feed/SHA256SUMS.gpg appliance/build/out/feed/SHA256SUMS
+          sbverify --cert "$KEYS/sb.crt" appliance/build/out/feed/omnifile-edge_0.1.0.efi
+
+      - name: Smoke boot
+        run: sudo appliance/tests/smoke.sh appliance/build/out/omnifile-edge_0.1.0.raw
+
+      - name: Unattended setup
+        run: sudo appliance/tests/setup.sh appliance/build/out/omnifile-edge_0.1.0.raw
+
+      - name: Build 0.2.0 and 0.3.0
+        if: ${{ inputs.update_round }}
+        run: |
+          set -euo pipefail
+          for v in 0.2.0 0.3.0; do
+            sudo -E appliance/build.sh --version $v --out "appliance/build/out-$v" \
+              --pubring "$KEYS/update-ring.pgp"
+            sudo rm -f "appliance/build/out-$v"/*.raw
+          done
+
+      - name: A/B update round
+        if: ${{ inputs.update_round }}
+        run: |
+          sudo -E appliance/tests/update-round.sh --disk appliance/build/out/omnifile-edge_0.1.0.raw \
+            --feed appliance/build/out-0.2.0/feed --feed appliance/build/out-0.3.0/feed \
+            --signer "fake:$KEYS/update.pem" --key-created 1792540800
+
+      - name: Collect logs
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/appliance-logs"
+          sudo cp appliance/build/smoke/serial.log "$RUNNER_TEMP/appliance-logs/smoke-serial.log" 2>/dev/null || true
+          sudo cp appliance/build/update-round/serial.log "$RUNNER_TEMP/appliance-logs/update-round-serial.log" 2>/dev/null || true
+          sudo cp appliance/build/setup/serial.log "$RUNNER_TEMP/appliance-logs/setup-serial.log" 2>/dev/null || true
+          sudo cp appliance/build/out/r3-gate/serial.log "$RUNNER_TEMP/appliance-logs/r3-gate-serial.log" 2>/dev/null || true
+          sudo chown -R "$(id -u):$(id -g)" "$RUNNER_TEMP/appliance-logs"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: appliance-logs
+          path: ${{ runner.temp }}/appliance-logs
+          if-no-files-found: warn
+
+  setup-ad:
+    name: setup wizard joins a Samba AD domain (containers)
+    # The ad and admins steps of omnifile-setup against a real Samba AD DC, with a
+    # systemd member (edge/crates/omnifile-setup/tests/ad/run.sh). About 5 minutes.
+    if: ${{ github.event_name == 'workflow_dispatch' || !github.event.pull_request.draft }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          workspaces: edge
+      - name: Build omnifile-setup
+        working-directory: edge
+        run: cargo build --release --locked -p omnifile-setup
+      - name: Domain join against a Samba AD DC
+        run: sudo edge/crates/omnifile-setup/tests/ad/run.sh

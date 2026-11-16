@@ -1,0 +1,30 @@
+# Starts one omnifile-annex@<id>.service per live annex of this edge, and
+# stops the units of annexes that were retired (docs/design/annex.md). It
+# polls the control API's GET annexes every [annex] poll_s.
+
+[Unit]
+Description=OmniFile annex supervisor (starts a unit per annex)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/omnifile-annex --config /etc/omnifile/edge.toml supervise
+Restart=always
+RestartSec=10
+User=root
+# systemctl start/stop over D-Bus; no file is written.
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

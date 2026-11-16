@@ -1,0 +1,21 @@
+# Unattended setup (docs/design/setup-wizard.md): the answers come as the system
+# credential omnifile.setup (hypervisor SMBIOS type 11, or the kernel command
+# line), with omnifile.join-password and omnifile.enrol-bundle if the
+# deployment provides them. Runs once: setup marks itself done.
+[Unit]
+Description=OmniFile: unattended setup from credentials
+ConditionCredential=omnifile.setup
+ConditionPathExists=!/var/lib/omnifile/setup/done
+After=local-fs.target systemd-networkd.service systemd-resolved.service
+Wants=systemd-networkd.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ImportCredential=omnifile.*
+ExecStart=/usr/local/bin/omnifile-setup unattended
+StandardOutput=journal+console
+StandardError=journal+console
+
+[Install]
+WantedBy=multi-user.target

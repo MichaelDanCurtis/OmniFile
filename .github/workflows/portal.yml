@@ -1,0 +1,42 @@
+name: portal
+
+# The portal SPA (decision 32). Fast, so it runs on draft PRs too.
+# portal/e2e/** belongs to the M4 integration lane (e2e.yml), not here.
+# Manual only: the repo has no GitHub-hosted runners (owner's choice, for cost),
+# so lanes run locally. Run this one from the Actions tab when runners exist.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: portal-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  portal:
+    name: portal (TypeScript)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: portal
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: portal/package-lock.json
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint (ESLint, Prettier)
+        run: npm run lint
+      - name: Generated client matches portal-api.yaml
+        run: npm run check:client
+      - name: Test (Vitest, Testing Library, axe)
+        run: npm test
+      - name: Build
+        run: npm run build

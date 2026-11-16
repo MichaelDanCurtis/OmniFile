@@ -1,0 +1,29 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "OmniFileEdgesThroughTheEdgeCaTrustAnchor",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "rolesanywhere.amazonaws.com"
+      },
+      "Action": [
+        "sts:AssumeRole",
+        "sts:TagSession",
+        "sts:SetSourceIdentity"
+      ],
+      "Condition": {
+        "ArnEquals": {
+          "aws:SourceArn": "arn:aws:rolesanywhere:eu-west-1:123456789012:trust-anchor/0b5f6c2e-1111-4222-8333-944445555666"
+        },
+        "StringEquals": {
+          "aws:PrincipalTag/x509Subject/OU": "omnifile-roles-anywhere",
+          "aws:PrincipalTag/x509Subject/CN": [
+            "omnifile-edge-7",
+            "omnifile-edge-9"
+          ]
+        }
+      }
+    }
+  ]
+}

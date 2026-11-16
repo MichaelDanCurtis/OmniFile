@@ -1,0 +1,23 @@
+# Each box's own SSH host keys. The image ships none (mkosi.conf RemoveFiles=): keys made at
+# build time would be the same on every box from one image, and the images built before that
+# fix did ship them. So at every boot: a box without the marker this unit writes has
+# keys it didn't make itself (none, or an old image's shared ones) and gets new ones, once; a
+# box with the marker only fills in a missing key type (ssh-keygen -A).
+# An early unit (no default dependencies): it must come before ssh.socket, which is ordered
+# before sockets.target and basic.target, so a default After=basic.target would be a cycle
+# that systemd breaks by dropping ssh.socket (it did: no SSH from the second boot on).
+# Started through its vendor link (sysinit.target.wants in /usr, build.sh), so an updated box,
+# whose /etc the presets never touch again, runs it too.
+[Unit]
+Description=OmniFile: this box's own SSH host keys
+DefaultDependencies=no
+After=local-fs.target
+Before=sockets.target ssh.socket ssh.service omnifile-setup-auto.service omnifile-setup-console.service shutdown.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/omnifile/ssh-host-keys
+
+[Install]
+WantedBy=sysinit.target

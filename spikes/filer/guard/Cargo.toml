@@ -1,0 +1,21 @@
+[package]
+name = "omnifile-guard-spike"
+version = "0.0.0"
+edition = "2021"
+publish = false
+description = "Throwaway spike: fanotify pre-content stub guard (filer spike, part A)"
+license = "BUSL-1.1"
+
+[dependencies]
+libc = "0.2"
+
+[[bin]]
+name = "omnifile-guard"
+path = "src/main.rs"
+
+[[bin]]
+name = "omnitool"
+path = "src/bin/omnitool.rs"
+
+[profile.release]
+debug = 1

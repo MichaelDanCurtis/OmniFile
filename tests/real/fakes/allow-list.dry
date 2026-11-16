@@ -1,0 +1,12 @@
+# The dry run's allow-list: the fakes' own identities (tests/real/fakes/fakecli.py, moto's
+# account). Only --dry-run reads a file other than tests/real/allow-list.local.
+azure-subscription    00000000-0000-4000-8000-0000000000a1
+azure-tenant          00000000-0000-4000-8000-0000000000b1
+azure-location        swedencentral
+aws-account           123456789012
+aws-region            us-west-2
+aws-profile           fake
+m365-tenant           00000000-0000-4000-8000-0000000000b1
+m365-test-user        geo-writer@ofreal.test
+ssh-from              192.0.2.10/32
+max-ttl-hours         24

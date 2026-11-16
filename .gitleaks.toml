@@ -1,0 +1,22 @@
+# gitleaks' default rules, less the known false positives in this repo. Used by
+# release/public_snapshot.py, which refuses to publish a snapshot gitleaks finds anything in.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Not secrets: type names, a public Azure app id, prose, and local test runs"
+regexes = [
+  # a type annotation or parameter named key, e.g. `key: Ed25519PrivateKey`
+  '''Ed25519Priv''',
+  '''Ed25519PrivateKey''',
+  # Microsoft's public, well-known app id for the Azure Service Management API
+  '''797f4846-ba00-4fd7-ba43-dac1f8f63013''',
+  # prose: "an Entra access token, RS256-signed by the tenant's keys"
+  '''^RS256-signed$''',
+  # an empty test setting in the harness's recorded dry run
+  '''^OMNI_TEST_API_MIN_REPLICAS=$''',
+]
+paths = [
+  # a real-cloud run's own throwaway test CAs and certificates (git-ignored, never committed)
+  '''tests/real/out/''',
+]

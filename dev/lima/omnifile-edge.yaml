@@ -1,0 +1,46 @@
+# Edge dev VM: Ubuntu 26.04 (kernel 7.0), xfs data volumes, Rust/C build deps,
+# Samba + winbind joined to the dev AD (omnifile-dc). Use dev/up.sh, which also
+# mounts the repo at /work and fetches the AD secrets first.
+minimumLimaVersion: 2.0.0
+base:
+- template:_images/ubuntu-26.04
+vmType: vz
+cpus: 4
+memory: 8GiB
+disk: 120GiB
+# The repo mount (/work) is added by dev/up.sh with --set.
+mounts: []
+networks:
+- lima: user-v2
+# No container runtime: Lima would otherwise download nerdctl-full on first boot.
+containerd:
+  system: false
+  user: false
+# Do not auto-forward guest ports (Samba's 445/139/53/88/389 would collide with
+# other VMs and with macOS itself). Reach VMs via `limactl shell` or user-v2 IPs.
+portForwards:
+- guestPortRange: [1, 65535]
+  ignore: true
+provision:
+- mode: system
+  script: |
+    #!/bin/bash
+    set -eu
+    # Ganesha's NFSv4 recovery records (RecoveryRoot in edge/config/ganesha/omnifile-base.conf):
+    # the same path as on the appliance, which creates it with tmpfiles.
+    install -d -m 0755 /var/lib/nfs /var/lib/nfs/ganesha
+    if [ -x /work/dev/scripts/edge-provision.sh ]; then
+      # Soft-fail here (e.g. the DC is not up yet); dev/up.sh re-runs it strictly.
+      /work/dev/scripts/edge-provision.sh \
+        || echo "edge-provision failed; start the DC and re-run dev/up.sh" >&2
+    else
+      echo "/work is not mounted: start this VM with dev/up.sh" >&2
+      exit 1
+    fi
+- mode: user
+  script: |
+    #!/bin/bash
+    set -eu
+    if [ ! -x "$HOME/.cargo/bin/rustup" ]; then
+      curl -fsSL https://sh.rustup.rs | sh -s -- -y --profile minimal -c rustfmt -c clippy >/dev/null
+    fi

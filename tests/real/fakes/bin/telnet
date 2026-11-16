@@ -1,0 +1,3 @@
+#!/bin/sh
+# Dry-run shim (tests/real/fakes/fakecli.py): a network tool nothing models, so it refuses.
+exec "${REAL_FAKE_PY:?the telnet shim runs only inside a harness dry run}" "$(dirname "$0")/../fakecli.py" no-network telnet "$@"

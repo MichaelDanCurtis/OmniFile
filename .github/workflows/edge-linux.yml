@@ -1,0 +1,99 @@
+name: Edge (Linux, root, xfs)
+
+# The edge tests that need what ci.yml's unprivileged run can't give them, on
+# the appliance's OS (decision 26): trusted.* xattrs and O_TMPFILE placeholders
+# (root, CAP_SYS_ADMIN), xfs (hole punching, FICLONE commit clones, the
+# daemon's startup check), and fanotify (the detector). In ci.yml these tests
+# print "skipping" and pass; here they must run.
+#
+# How the tests find their filesystems:
+#   OMNIFILE_TEST_DIR    an xfs directory (omnifile-marker xattr tests,
+#                        omnifile-stub linux_xfs, omnifile-edge daemon_linux);
+#                        default /srv/omnifile/data/test, the dev VM's volume
+#   OMNIFILE_DETECT_DIR  where the detector tests make their temp trees
+#                        (omnifile-detect tests/fanotify.rs); default /var/tmp
+#   OMNIFILE_REQUIRE_FANOTIFY=1  fail instead of skipping without fanotify
+#   OMNIFILE_REQUIRE_SIM=1       fail instead of skipping without uv (sim facade)
+# Both directories are on a loop-mounted xfs image here, as in the dev VM.
+# The root-only tests skip when not root, so the whole suite runs as root.
+
+# Manual only: the repo has no GitHub-hosted runners (owner's choice, for cost),
+# so lanes run locally. Run this one from the Actions tab when runners exist.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: edge-linux-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  edge-linux:
+    name: edge tests as root on xfs (ubuntu-26.04)
+    # Heavy lane: skipped on draft PRs (see docs/BUILD-PLAN.md, "CI cost").
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: ubuntu-26.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@89b12181fb390509a0842a86cc55eeb8eb928c1d # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
+        with:
+          workspaces: edge
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+      - run: uv sync --locked --project service
+
+      - name: Kernel and xfs volume
+        run: |
+          uname -a
+          grep -E 'CONFIG_FANOTIFY(_ACCESS_PERMISSIONS)?=|CONFIG_XFS_FS=' "/boot/config-$(uname -r)" || true
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq xfsprogs attr >/dev/null
+          truncate -s 8G "$RUNNER_TEMP/omni-xfs.img"
+          mkfs.xfs -q "$RUNNER_TEMP/omni-xfs.img"
+          sudo mkdir -p /srv/omnifile/data
+          sudo mount -o loop "$RUNNER_TEMP/omni-xfs.img" /srv/omnifile/data
+          sudo mkdir -p /srv/omnifile/data/test /srv/omnifile/data/detect
+          findmnt /srv/omnifile/data
+
+      # Build as the runner user (cache, toolchain), then run the same test
+      # binaries as root: cargo decides nothing needs rebuilding.
+      - name: Build tests
+        working-directory: edge
+        run: cargo test --workspace --all-targets --locked --no-run
+
+      # omnifile-detect's fanotify tests run one at a time: its
+      # own_writes_are_ignored test is racy beside the tests that spawn a
+      # shell. A fork() in another test thread can inherit the test file's fd,
+      # so the last close (and the CLOSE_WRITE event) happens in the child
+      # and carries the child's pid. Seen in the dev VM about one run in two.
+      - name: Run the workspace tests as root
+        working-directory: edge
+        # pipefail: without it the `| tee` below hides a failing test run and
+        # the job goes green (M1 review #8).
+        shell: bash
+        run: |
+          set -euo pipefail
+          # root must use the runner user's toolchain: without these, rustup under
+          # sudo looks in /root and finds none (this silently skipped every test
+          # before pipefail made the step able to fail).
+          export RUSTUP_HOME="${RUSTUP_HOME:-$HOME/.rustup}" CARGO_HOME="${CARGO_HOME:-$HOME/.cargo}"
+          export RUSTUP_TOOLCHAIN="${RUSTUP_TOOLCHAIN:-stable}"
+          run_root() {
+            sudo --preserve-env=CARGO_HOME,RUSTUP_HOME,RUSTUP_TOOLCHAIN,CARGO_TERM_COLOR env "PATH=$PATH" \
+              OMNIFILE_TEST_DIR=/srv/omnifile/data/test \
+              OMNIFILE_DETECT_DIR=/srv/omnifile/data/detect \
+              OMNIFILE_REQUIRE_FANOTIFY=1 \
+              OMNIFILE_REQUIRE_SIM=1 \
+              cargo test --locked "$@"
+          }
+          {
+            run_root --workspace --exclude omnifile-detect --all-targets -- --nocapture
+            run_root -p omnifile-detect --all-targets -- --nocapture --test-threads=1
+          } 2>&1 | tee "$RUNNER_TEMP/edge-tests.log"
+          # A Linux-only test that skipped here is a test that did not run.
+          if grep -E '^skipping:' "$RUNNER_TEMP/edge-tests.log"; then
+            echo "::error::Linux-only edge tests skipped (see above)"; exit 1
+          fi

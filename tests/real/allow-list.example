@@ -1,0 +1,18 @@
+# The shape of tests/real/allow-list.local, which the owner writes (it is git-ignored, and
+# the harness never writes it). A run refuses any subscription, tenant or account not
+# listed here. Copy this file to allow-list.local and put real values in; these are
+# documentation placeholders.
+#
+# key                 value
+azure-subscription    00000000-0000-0000-0000-000000000000
+azure-tenant          00000000-0000-0000-0000-000000000000
+azure-location        westus3
+aws-account           000000000000
+aws-region            us-west-2
+aws-profile           omnifile-test
+m365-tenant           00000000-0000-0000-0000-000000000000
+m365-test-user        test.user@example.com
+# The address the owner's workstation reaches the test VM from (SSH, one /32 is best).
+ssh-from              192.0.2.10/32
+# The longest expiry a run may tag its resources with.
+max-ttl-hours         24

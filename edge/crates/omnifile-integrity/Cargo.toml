@@ -1,0 +1,27 @@
+[package]
+name = "omnifile-integrity"
+description = "OmniFile Gateway edge hashing and integrity: BLAKE3 whole-file hash, CRC64-NVME per block and combined, Azure block planning, checksum header encodings"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+# BLAKE3 whole-file hash for dedupe. `rayon` enables `Hasher::update_rayon`
+# (multi-threaded hashing of large buffers). CC0-1.0 OR Apache-2.0 (OR Apache-2.0 WITH LLVM-exception).
+blake3 = { version = "1.8", features = ["rayon"] }
+# CRC-64/NVME with SIMD (aarch64 PMULL/EOR3, x86_64 PCLMULQDQ/VPCLMULQDQ). MIT OR Apache-2.0.
+# Default features (ffi, panic-handler) are for the C shared library and are not needed.
+crc-fast = { version = "1.10", default-features = false, features = ["std"] }
+# Header encodings and block IDs. MIT OR Apache-2.0.
+base64 = "0.22"
+# Chunk-parallel CRC in the single-pass pipeline. MIT OR Apache-2.0.
+rayon = "1.11"
+
+[dev-dependencies]
+# Independent table-driven CRC implementation, used only to cross-check crc-fast in tests. MIT OR Apache-2.0.
+crc = "3.4"
+
+[[bench]]
+name = "throughput"
+harness = false

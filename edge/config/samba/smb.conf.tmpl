@@ -1,0 +1,88 @@
+# OmniFile edge filer: Samba global section (decision 28, docs/design/access-control.md).
+#
+# Rendered by the daemon at setup: @WORKGROUP@ @REALM@ @NETBIOS_NAME@
+# @IDMAP_RANGE@ @AUDIT_FACILITY@. Shares are NOT written here: the daemon
+# renders one stanza per share (omnifile_acl::ShareConfig::render_smb) into
+# /var/lib/omnifile/shares/smb.conf, which /etc/samba/omnifile-shares.conf,
+# included at the end, includes (docs/design/share-provisioning.md).
+#
+# Rules this file enforces, and why:
+# - winbind is the one identity source for NFS and SMB (no SSSD), with
+#   idmap_ad (RFC2307 uidNumber/gidNumber), so every protocol and every Linux
+#   client sees the same uid/gid for an AD user or group.
+# - POSIX ACLs on xfs are the only permission store. Samba maps Explorer's NT
+#   ACLs to and from them (nt acl support). vfs_acl_xattr is NEVER loaded: it
+#   would keep a Windows ACL in security.NTACL that NFS never enforces, leaving
+#   two truths. omnifile_acl::config::check_smb_conf rejects it.
+# - No local accounts: map to guest = never, no guest shares, no smbpasswd.
+
+[global]
+    workgroup = @WORKGROUP@
+    realm = @REALM@
+    netbios name = @NETBIOS_NAME@
+    security = ads
+    kerberos method = secrets and keytab
+    dedicated keytab file = /etc/krb5.keytab
+    server role = member server
+
+    # Identity: winbind + idmap_ad (same ids everywhere).
+    winbind use default domain = yes
+    winbind nested groups = yes
+    winbind refresh tickets = yes
+    winbind offline logon = no
+    winbind enum users = no
+    winbind enum groups = no
+    # Group-membership cache (seconds): how long a removal from an AD group can
+    # take to revoke access. Documented in edge/config/README.md.
+    winbind cache time = 300
+    idmap config * : backend = tdb
+    idmap config * : range = 3000-7999
+    idmap config @WORKGROUP@ : backend = ad
+    idmap config @WORKGROUP@ : schema_mode = rfc2307
+    idmap config @WORKGROUP@ : range = @IDMAP_RANGE@
+    idmap config @WORKGROUP@ : unix_nss_info = yes
+    template shell = /usr/sbin/nologin
+
+    # Authentication: AD only (Kerberos, or NTLMv2 checked by the DC).
+    map to guest = never
+    restrict anonymous = 2
+    ntlm auth = ntlmv2-only
+    server min protocol = SMB2_10
+    server signing = default
+    smb encrypt = if_required
+
+    # Permissions: POSIX ACLs are the truth; NT ACLs are a view of them.
+    nt acl support = yes
+    inherit acls = yes
+    map acl inherit = yes
+    acl group control = no
+    store dos attributes = yes
+    map archive = no
+    map hidden = no
+    map system = no
+    map readonly = no
+
+    # Hide shares a user cannot use; hide files and folders they cannot read.
+    access based share enum = yes
+
+    # Audit (access-control.md §9): opens and connects, with the AD user.
+    # Never acl_xattr here or in any share.
+    vfs objects = full_audit
+    full_audit:prefix = %u|%U|%I|%m|%S
+    full_audit:success = connect disconnect openat create_file renameat unlinkat fset_nt_acl fsetxattr
+    full_audit:failure = connect openat create_file fset_nt_acl
+    full_audit:facility = @AUDIT_FACILITY@
+    full_audit:priority = NOTICE
+    full_audit:log_secdesc = yes
+
+    # No printers, no home shares.
+    load printers = no
+    printing = bsd
+    printcap name = /dev/null
+    disable spoolss = yes
+
+    # Kernel leases/oplocks off: the smb-guard's fanotify pre-content events must
+    # see every read, and Samba must not hand out a lease that skips them.
+    kernel oplocks = no
+
+include = /etc/samba/omnifile-shares.conf

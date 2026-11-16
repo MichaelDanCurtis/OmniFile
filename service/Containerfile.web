@@ -1,0 +1,54 @@
+# OmniFile `web` image: the portal JSON API and sign-in (python -m omnifile_service.web),
+# serving the built portal SPA (portal/, decision 32) as static files. ARCHITECTURE.md §1.
+#
+#   Build from the repository root (it needs portal/ and service/):
+#     podman build -f service/Containerfile.web -t omnifile-web .
+#     (docker buildx reads service/Containerfile.web.dockerignore to keep the context small;
+#     the COPY lines name every input, so the image is the same without it)
+#
+# Three stages: Node builds portal/dist (npm ci from the lockfile, vite build); uv resolves the
+# service's locked dependencies into a venv; the runtime stage is python:3.12-slim with that
+# venv and the built files only: no Node at runtime. Behind Container Apps it listens on plain
+# HTTP :8080; ingress terminates TLS (private ingress, no client certificates). Required
+# settings (OMNIFILE_DATABASE_URL, OMNIFILE_WEB_ORIGIN, OMNIFILE_WEB_TENANT_ID,
+# OMNIFILE_WEB_CLIENT_ID, ...) are listed in src/omnifile_service/web/__main__.py.
+
+# Base images are pinned by digest (multi-arch index); bump deliberately, with Containerfile.api.
+FROM node:22-bookworm-slim@sha256:c3de60bf2f9dd0ac6370e6117950ff62d6e339527e7472301c9c78a017978392 AS portal
+WORKDIR /portal
+COPY portal/package.json portal/package-lock.json ./
+RUN npm ci --no-audit --no-fund
+# Only what `vite build` reads, named one by one: a host portal/node_modules or dist can't
+# reach the image even where the builder ignores ignore files (podman, buildah).
+COPY portal/index.html portal/vite.config.ts portal/tsconfig.json ./
+COPY portal/public ./public
+COPY portal/src ./src
+RUN npm run build
+
+FROM ghcr.io/astral-sh/uv:0.9@sha256:538e0b39736e7feae937a65983e49d2ab75e1559d35041f9878b7b7e51de91e4 AS uv
+
+FROM python:3.12-slim@sha256:02108f5d322dd89f1c9e552442c25acb0543dfdbc455693a5599624f20d9155d AS build
+COPY --from=uv /uv /usr/local/bin/uv
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never
+WORKDIR /app
+COPY service/pyproject.toml service/uv.lock ./
+RUN uv sync --locked --no-dev --no-install-project
+COPY service/src ./src
+RUN uv sync --locked --no-dev --no-editable
+
+FROM python:3.12-slim@sha256:02108f5d322dd89f1c9e552442c25acb0543dfdbc455693a5599624f20d9155d
+RUN groupadd --system --gid 10001 omnifile \
+ && useradd --system --uid 10001 --gid omnifile --no-create-home --shell /usr/sbin/nologin omnifile
+COPY --from=build --chown=root:root /app/.venv /app/.venv
+COPY --from=portal --chown=root:root /portal/dist /app/portal
+ENV PATH=/app/.venv/bin:$PATH \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=8080 \
+    OMNIFILE_WEB_STATIC_DIR=/app/portal
+USER 10001:10001
+EXPOSE 8080
+# Works with a read-only root filesystem; nothing is written at runtime.
+HEALTHCHECK --interval=30s --timeout=3s CMD ["python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=2).status == 200 else 1)"]
+ENTRYPOINT ["python", "-m"]
+CMD ["omnifile_service.web"]

@@ -1,0 +1,17 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "TheServiceManagedIdentitiesByWebIdentity",
+      "Effect": "Allow",
+      "Principal": { "Federated": "arn:aws:iam::ACCOUNT_ID:oidc-provider/sts.windows.net/TENANT_ID/" },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "sts.windows.net/TENANT_ID/:aud": "AUDIENCE",
+          "sts.windows.net/TENANT_ID/:sub": ["API_PRINCIPAL_ID", "WORKER_PRINCIPAL_ID"]
+        }
+      }
+    }
+  ]
+}

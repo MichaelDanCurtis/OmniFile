@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# sbsign, sbverify and sbattach (Ubuntu 26.04's sbsigntool) run in a container, for a release host without them
+# (macOS). Link or copy this file as sbsign, sbverify and sbattach on PATH; it runs the tool named by $0.
+#
+# Each absolute path argument's directory is mounted at the same path, so the tool sees the files where the caller
+# does; Docker must be able to share those paths (on macOS: /private/tmp and the home folder, not every external
+# volume). The image omnifile-sbsigntool:0.9.4 is built once, from ubuntu:26.04 with sbsigntool 0.9.4-3.1ubuntu9.
+# Signing with the Key Vault engine (sbsign --engine e_akv) needs the engine in the image, so it runs on the
+# release host itself, not through this.
+set -euo pipefail
+tool=$(basename "$0")
+case $tool in sbsign | sbverify | sbattach) ;; *) echo "sbtool: run me as sbsign, sbverify or sbattach" >&2; exit 2 ;; esac
+img=omnifile-sbsigntool:0.9.4
+if ! docker image inspect "$img" >/dev/null 2>&1; then
+  printf 'FROM ubuntu:26.04\nRUN apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends sbsigntool=0.9.4-3.1ubuntu9 >/dev/null && rm -rf /var/lib/apt/lists/*\n' |
+    docker build -q -t "$img" - >/dev/null
+fi
+mounts=() seen=:
+for a in "$@"; do
+  case $a in
+    /*) d=$(dirname "$a"); [ -d "$a" ] && d=$a
+        case $seen in *":$d:"*) ;; *) seen="$seen$d:"; mounts+=(-v "$d:$d") ;; esac ;;
+  esac
+done
+exec docker run --rm -i --user "$(id -u):$(id -g)" ${mounts[@]+"${mounts[@]}"} "$img" "$tool" "$@"

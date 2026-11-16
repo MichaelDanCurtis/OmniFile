@@ -1,0 +1,181 @@
+/* Settings, Filers: NAS filer -> edge -> annex -> Azure (WP18). */
+
+.flow {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 28px;
+}
+
+.flow-node {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+/* The arrow to the next node. */
+.flow-node + .flow-node::before {
+  content: "";
+  position: absolute;
+  top: 26px;
+  left: -26px;
+  width: 22px;
+  border-top: 2px solid var(--ink-2);
+}
+
+.flow-node + .flow-node::after {
+  content: "";
+  position: absolute;
+  top: 22px;
+  left: -9px;
+  border: 5px solid transparent;
+  border-left-color: var(--ink-2);
+}
+
+.flow-node[data-tone="locked"] {
+  border-style: dashed;
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.flow-node[data-tone="locked"]::before {
+  border-top-style: dotted;
+  border-top-color: var(--border-strong);
+}
+
+.flow-node[data-tone="locked"]::after {
+  border-left-color: var(--border-strong);
+}
+
+.flow-node[data-tone="ok"] {
+  border-color: color-mix(in srgb, var(--ok) 45%, var(--border));
+}
+
+.flow-node[data-tone="warn"] {
+  border-color: var(--warn-line);
+}
+
+.flow-node[data-tone="danger"] {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+}
+
+.flow-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--text-label);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.flow-title {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.flow-node[data-tone="locked"] .flow-title {
+  color: var(--muted);
+}
+
+.flow-detail {
+  display: grid;
+  gap: 4px;
+  font-size: var(--text-sm);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.flow-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.flow-check {
+  padding: 0 7px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+
+.flow-check[data-ok="true"] {
+  border-color: transparent;
+  background: var(--ok-soft);
+  color: var(--ok);
+}
+
+.flow-check[data-ok="false"] {
+  border-color: transparent;
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.flow-error {
+  color: var(--danger);
+}
+
+.flow-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 14px 16px;
+  border: 1px solid var(--signal);
+  border-radius: var(--radius-lg);
+  background: var(--signal-soft);
+}
+
+.flow-cta p {
+  margin: 0;
+}
+
+@media (max-width: 1099px) {
+  .flow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+  }
+
+  .flow-node + .flow-node::before {
+    top: -20px;
+    left: 26px;
+    width: 0;
+    height: 18px;
+    border-top: 0;
+    border-left: 2px solid var(--ink-2);
+  }
+
+  .flow-node + .flow-node::after {
+    top: -8px;
+    left: 22px;
+    border: 5px solid transparent;
+    border-top-color: var(--ink-2);
+    border-left-color: transparent;
+  }
+
+  .flow-node[data-tone="locked"]::before {
+    border-left-style: dotted;
+    border-left-color: var(--border-strong);
+  }
+
+  .flow-node[data-tone="locked"]::after {
+    border-top-color: var(--border-strong);
+    border-left-color: transparent;
+  }
+}

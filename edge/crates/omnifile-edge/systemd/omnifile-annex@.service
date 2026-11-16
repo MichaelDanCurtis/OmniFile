@@ -1,0 +1,75 @@
+# One annex (docs/design/annex.md, phase A1): a directory on someone else's
+# NAS, mounted read-only and copied to Azure as plain blobs. Started and
+# stopped by omnifile-annex.service as annexes come and go in the catalog;
+# %i is the annex id.
+#
+# - Its own unit and its own mount namespace (PrivateMounts=yes): a hung NAS
+#   stalls this unit only, never the daemon that serves OmniFile's shares,
+#   and its NAS mount is invisible to every other process.
+# - The mount is read-only (Copy mode never writes to the NAS) and uses the
+#   edge's AD computer account: cifs.upcall and rpc.gssd read the host keytab
+#   from the setup wizard's AD join, so there is no password here.
+# - Removals (phase A2.2) add a second, read-write mount in the same private
+#   namespace, only while the annex's removals are live; the remover alone
+#   writes through it.
+# - Placements (phase A3.3) add a third mount, only while one has work due; the
+#   placer alone writes through it, with the restore-rights account.
+# - A dedicated account's keytab (`service_keytab`), the remove-rights keytab
+#   and the restore-rights keytab are sealed with systemd-creds (TPM 2.0 plus
+#   the host key), like the mTLS key, and imported here: `systemd-creds encrypt
+#   --name=annex.keytab <keytab> /etc/credstore.encrypted/annex.keytab` (and
+#   annex-remove.keytab, annex-restore.keytab).
+#   They are in the clear only in this unit's own credentials directory.
+# - Nothing to fail closed: users read the NAS directly, never through
+#   OmniFile. A crash restarts the unit, which resumes from annex.db and the
+#   upload journals.
+
+[Unit]
+Description=OmniFile annex %i (a NAS directory copied to Azure)
+After=network-online.target winbind.service rpc-gssd.service
+# rpc.gssd gets the kernel's NFS sec=krb5 tickets from the host keytab; nothing
+# else on the box starts it (Ganesha serves sec=sys and krb5 by itself). Wanted
+# here, not enabled in the preset, so it runs only on an edge with an annex;
+# its own ConditionPathExists=/etc/krb5.keytab keeps it idle before the AD join.
+Wants=network-online.target rpc-gssd.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/omnifile-annex --config /etc/omnifile/edge.toml run --annex %i
+Restart=always
+RestartSec=10
+ImportCredential=annex.keytab
+ImportCredential=annex-remove.keytab
+ImportCredential=annex-restore.keytab
+StateDirectory=omnifile/annex
+RuntimeDirectory=omnifile/annex/%i
+User=root
+# mount(2) of the NAS needs CAP_SYS_ADMIN; reading every user's file over
+# NFS sec=sys needs CAP_DAC_READ_SEARCH and CAP_DAC_OVERRIDE (a root-squashed
+# export refuses them, which the mount check reports). A remove- or
+# restore-rights account's ticket cache belongs to its own uid, which needs
+# CAP_CHOWN (cifs.upcall reads a cruid's cache as that uid). Nothing else.
+CapabilityBoundingSet=CAP_SYS_ADMIN CAP_DAC_OVERRIDE CAP_DAC_READ_SEARCH CAP_CHOWN
+AmbientCapabilities=
+NoNewPrivileges=yes
+PrivateMounts=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/omnifile/annex /run/omnifile/annex
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+RestrictRealtime=yes
+LockPersonality=yes
+# AF_UNIX: winbind (SID lookups) and systemd; AF_INET*: the NAS, the service
+# and Blob; AF_NETLINK: interface lookups.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+SystemCallArchitectures=native
+SystemCallFilter=~@debug @module @raw-io @reboot @swap @obsolete
+SystemCallErrorNumber=EPERM
+ProtectKernelTunables=yes
+TimeoutStopSec=60
+KillMode=mixed

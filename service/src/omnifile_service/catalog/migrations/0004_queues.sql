@@ -1,0 +1,25 @@
+-- Migration 0004: the PGMQ queues v0 needs (decision 27).
+--
+-- Work is enqueued in the same transaction as the catalog change that
+-- causes it, so neither can happen without the other:
+--
+--   BEGIN;
+--   UPDATE catalog.recall SET state = 'rehydrating' WHERE recall_id = $1;
+--   SELECT pgmq.send('restores', jsonb_build_object('recall_id', $1));
+--   COMMIT;
+--
+-- Consumers read with a visibility timeout, then archive (keep for audit)
+-- or delete. A message read more than `max_reads` times goes to the
+-- consumer's dead-letter handling (read_ct is on every message).
+--
+-- restores          start or poll a provider restore (Azure rehydrate copy,
+--                   S3 RestoreObject / Batch restore wave)
+-- storage_mover     create, rerun or watch a Storage Mover job (decision 20)
+-- verify            per-file CRC64-NVME verification before cutover (24)
+-- notify            Teams card send/update, email fallback
+-- edge_instructions decisions that need the backend before the edge may act
+--                   (e.g. HEAD the blob before allowing a stub); the worker
+--                   turns each into desired state on catalog.file, which
+--                   reaches the edge through the feed
+SELECT pgmq.create(q)
+  FROM unnest(ARRAY['restores', 'storage_mover', 'verify', 'notify', 'edge_instructions']) AS q;

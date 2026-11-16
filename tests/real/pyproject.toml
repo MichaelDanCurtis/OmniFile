@@ -1,0 +1,38 @@
+[project]
+name = "omnifile-real-harness"
+version = "0.0.0"
+description = "The real-cloud harness (tests/real/run.sh): one command proves the real-account checks, then cleans up"
+requires-python = ">=3.12"
+license = "BUSL-1.1"
+dependencies = [
+    "boto3[crt]>=1.40,<2",  # crt: CRC64NVME checksums
+    "cryptography>=45",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    # AWS fakes for the dry run, in server mode so the harness and the aws shim share one
+    # state. Never a real account.
+    # Only the services the harness calls, and Flask for server mode (moto[server] would add
+    # cfn-lint and, through it, regex, under a licence the release check does not allow).
+    "moto[s3,s3control,sqs,iam,ec2,events,ssm,sts,kms]>=5.1,<6",
+    "flask>=3,<4",
+    "flask-cors>=5,<7",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+# `ruff format` keeps code within 100 columns; what is left over are the manual steps'
+# prose strings, which read better whole.
+ignore = ["E501"]

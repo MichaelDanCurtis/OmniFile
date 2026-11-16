@@ -1,0 +1,14 @@
+# Build context for service/Containerfile.web (the repository root): only what it copies.
+*
+!portal/package.json
+!portal/package-lock.json
+!portal/index.html
+!portal/vite.config.ts
+!portal/tsconfig.json
+!portal/public
+!portal/src
+!service/pyproject.toml
+!service/uv.lock
+!service/src
+**/__pycache__
+**/*.pyc

@@ -1,0 +1,112 @@
+# The OmniFile edge daemon, as the appliance runs it (Ubuntu 26.04,
+# decision 26). Installed by dev/scripts/install-edge.sh on the dev VM and by
+# the e2e CI lane; the appliance image (M6) ships the same unit.
+#
+# Ordering and lifetime, from the filer spike ("What the build must do") and
+# AGENTS.md "Stubs must fail closed":
+# - nfs-ganesha-omni.service (and, from M2, smbd) has Requires= and
+#   BindsTo= on this unit and is ordered After= it: nothing serves the volume
+#   unless the daemon has been started.
+# - RestartMode=direct (systemd >= 254): a crash restarts the daemon without
+#   passing through "failed"/"inactive", so BindsTo= does not take Ganesha
+#   down with it. While the daemon is gone FSAL_OMNI fails closed (DELAY or
+#   EIO, never zeros) and reconnects to the new instance, which resyncs.
+# - The fd store (FileDescriptorStoreMax=, FileDescriptorStorePreserve=yes)
+#   is where the smb-guard parks its fanotify group, so the group (and its
+#   queued pre-content events) outlives a daemon crash and the next instance
+#   answers them. The guard's own requirements (Type=notify, the private fill
+#   mount, smbd/Ganesha binding) are in edge/systemd/omnifile-edge.service.d/
+#   10-smbguard.conf, installed with this unit.
+# - The write detector's notification group is in the same store
+#   (FDNAME=omnifile-detect, FAN_UNLIMITED_QUEUE): a close that lands while the
+#   daemon restarts is read by the next instance (WP9). NotifyAccess=main lets
+#   the daemon push it even without the guard's Type=notify drop-in.
+# - /run/omnifile (the FSAL socket) is preserved across restarts.
+
+[Unit]
+Description=OmniFile edge daemon (landing zone, upload, stubs, recall fill)
+Documentation=file:///usr/share/doc/omnifile/fsal-socket.md
+After=local-fs.target network-online.target omnifile-aws-signing-helper.service
+# The IAM Roles Anywhere helper serves the credentials S3 reads are signed
+# with (decision 43). Wants=, not Requires=: until it is provisioned its
+# conditions keep it idle, and S3 reads fail closed meanwhile.
+Wants=network-online.target omnifile-aws-signing-helper.service
+RequiresMountsFor=/srv/omnifile/data /var/lib/omnifile
+Before=nfs-ganesha-omni.service
+# Bursts of crashes still restart: while the daemon is gone FSAL_OMNI fails
+# closed, so giving up on restarts would only lengthen the outage.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+ExecStartPre=/usr/local/bin/omnifile-edge --config /etc/omnifile/edge.toml --check
+ExecStart=/usr/local/bin/omnifile-edge --config /etc/omnifile/edge.toml
+Restart=always
+RestartSec=1
+RestartMode=direct
+FileDescriptorStoreMax=64
+FileDescriptorStorePreserve=yes
+# FDSTORE=1 goes through the notification socket, which systemd only reads
+# from the main process when this is set (Type=notify in 10-smbguard.conf
+# implies it; Type=simple does not).
+NotifyAccess=main
+RuntimeDirectory=omnifile
+RuntimeDirectoryPreserve=yes
+StateDirectory=omnifile
+User=root
+# Root, but confined (security review, M2):
+# - CAP_SYS_ADMIN: trusted.* markers, fanotify (smb-guard, detector),
+#   FAN_MARK_FILESYSTEM, the fd store;
+# - CAP_DAC_OVERRIDE, CAP_DAC_READ_SEARCH (open_by_handle_at), CAP_FOWNER: fill,
+#   stub and mark any user's file; CAP_CHOWN, CAP_FSETID: keep ownership and
+#   mode across placeholders;
+# - CAP_LEASE: the stub handshake's write-lease check (F_SETLEASE) on files
+#   owned by AD users; measured: without it every stub is skipped (EACCES);
+# - CAP_SYS_PTRACE (read-only uses, no ptrace(2): @debug is filtered below):
+#   SMB attribution reads /proc/<smbd>/task/*/status and wchan to find the
+#   thread blocked on a guard event and its session user's uid; and the FSAL
+#   peer check reads Ganesha's
+#   /proc/<pid>/exe, and the kernel allows that to a root process only if its
+#   capabilities cover Ganesha's (CAP_SETUID, CAP_SETGID, CAP_NET_BIND_SERVICE,
+#   CAP_MKNOD, CAP_LEASE) or it has CAP_SYS_PTRACE. Measured: without it every
+#   FSAL connection is refused (peer_exe None). The guard's namespace check
+#   (/proc/1/ns/mnt) has a fallback and does not need it.
+# Nothing else: no CAP_KILL (pidfd liveness treats EPERM as alive),
+# CAP_SYS_MODULE, CAP_SYS_RAWIO, CAP_SETUID, CAP_SETGID, CAP_NET_*, CAP_MKNOD. The e2e lanes check the bounding set.
+CapabilityBoundingSet=CAP_SYS_ADMIN CAP_DAC_OVERRIDE CAP_DAC_READ_SEARCH CAP_FOWNER CAP_CHOWN CAP_FSETID CAP_SYS_PTRACE CAP_LEASE
+AmbientCapabilities=
+NoNewPrivileges=yes
+# Read-only system; writable only where the daemon keeps state. The fill mount
+# (/run/omnifile-fill, 10-smbguard.conf) is a bind of the data volume, and the
+# guard journal is under the RuntimeDirectory.
+ProtectSystem=strict
+ReadWritePaths=/srv/omnifile/data /var/lib/omnifile /run/omnifile
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+RestrictRealtime=yes
+# Not RestrictSUIDSGID=: systemd enforces it by failing openat2() with ENOSYS
+# (it cannot inspect the open_how struct), and omnifile-acl resolves paths
+# with openat2(RESOLVE_NO_SYMLINKS).
+LockPersonality=yes
+# AF_UNIX: FSAL socket, winbind, systemd notify and D-Bus; AF_INET*: the
+# service and Blob; AF_NETLINK: interface and route lookups.
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+SystemCallArchitectures=native
+# No mount(2) family at all: the private fill mount is made by systemd
+# (PrivateMounts=, BindPaths= in 10-smbguard.conf; the guard uses
+# FillMount::Existing). No ptrace, kernel modules, raw I/O, reboot or swap.
+SystemCallFilter=~@mount @debug @module @raw-io @reboot @swap @obsolete
+SystemCallErrorNumber=EPERM
+ProtectKernelTunables=yes
+# The daemon creates no namespaces (systemd sets up the unit's own).
+RestrictNamespaces=yes
+LimitNOFILE=1048576
+TimeoutStopSec=30
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target

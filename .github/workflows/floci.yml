@@ -1,0 +1,65 @@
+name: Floci smoke
+
+# Layer 2 of the test strategy (docs/BUILD-PLAN.md, "Test strategy"): our
+# real Azure SDK code paths against the floci-az emulator, where Floci is
+# faithful. That means container and blob CRUD, staged upload, ranged
+# download, listing, and Get User Delegation Key plus SAS use. Floci has no
+# tiers, CRC64 checks, versioning, change feed or immutability, so those stay
+# with the unit tests (fake transport) and the real-Azure lane.
+
+# Manual only: the repo has no GitHub-hosted runners (owner's choice, for cost),
+# so lanes run locally. Run this one from the Actions tab when runners exist.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: floci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  floci-az:
+    name: Azure backend vs floci-az
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: service
+    services:
+      floci-az:
+        # floci-az 0.13.0 (MIT), the version the lane was written against.
+        image: floci/floci-az:0.13.0@sha256:3a71953fbc0940aa33bbc1c5e88211a320b66812c0840831a9f8558d3d3521c5
+        env:
+          # The SDK sends Entra tokens only over HTTPS. Floci serves HTTP and
+          # HTTPS on one port and accepts any token in its default dev mode.
+          FLOCI_AZ_TLS_ENABLED: "true"
+        ports:
+          - 4577:4577
+    env:
+      OMNIFILE_TEST_FLOCI_AZ: http://127.0.0.1:4577
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+      - run: uv sync --locked --group dev
+      - name: Wait for floci-az
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null "$OMNIFILE_TEST_FLOCI_AZ/_floci/tls-cert"; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "floci-az did not come up" >&2
+          exit 1
+      - name: Smoke tests (marker floci)
+        # A green run with every test skipped would hide a broken lane.
+        run: |
+          set -o pipefail
+          uv run pytest -m floci tests/azure -v -rs 2>&1 | tee "$RUNNER_TEMP/floci.txt"
+          grep -Eq "[1-9][0-9]* passed" "$RUNNER_TEMP/floci.txt"
+          if grep -Eq "[0-9]+ skipped" "$RUNNER_TEMP/floci.txt"; then
+            echo "floci tests were skipped" >&2
+            exit 1
+          fi

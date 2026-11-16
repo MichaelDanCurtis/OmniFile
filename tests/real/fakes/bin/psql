@@ -1,0 +1,3 @@
+#!/bin/sh
+# Dry-run shim (tests/real/fakes/fakecli.py): records the call, never reaches a real server.
+exec "${REAL_FAKE_PY:?the psql shim runs only inside a harness dry run}" "$(dirname "$0")/../fakecli.py" psql "$@"

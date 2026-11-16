@@ -1,0 +1,102 @@
+# The IAM Roles Anywhere credential helper for the edge's S3 reads (M5;
+# control-api.md §3, docs/design/edge-s3-reads.md). It exchanges the
+# appliance's X.509 certificate for temporary AWS credentials and serves them
+# on a loopback IMDSv2-style endpoint, which omnifile-blob's S3 reader polls
+# (`[s3] imds_url`, default http://127.0.0.1:9911). No AWS secret is stored
+# anywhere: the reader signs each GET with SigV4 from those credentials.
+#
+# The binary is AWS's release, pinned by version and SHA-256 (LICENSES.md),
+# at /usr/libexec/omnifile/aws_signing_helper. On the appliance that is the
+# read-only, verity-checked /usr, staged by appliance/build.sh; elsewhere
+# edge/systemd/install.sh --signing-helper FILE puts it there.
+#
+# The key is sealed like the edge's mTLS key (M6, "TPM-held keys";
+# docs/design/setup-wizard.md "Keys"): `systemd-creds encrypt` binds it to
+# the TPM 2.0 (and the host key). systemd decrypts it for this unit only,
+# into its private credentials directory in memory, never onto disk. The
+# setup wizard's `aws` step makes it, with a CSR for the trust anchor's CA:
+#
+#   systemd-creds encrypt --name=roles-anywhere-key --with-key=auto \
+#       --tpm2-pcrs= - /var/lib/omnifile/identity/roles-anywhere.cred
+#
+# By default (decision 50) OmniFile's edge CA issues the certificate: the
+# daemon gets it from the service over mTLS, writes it to
+# /var/lib/omnifile/roles-anywhere/cert.pem (world-readable, so this unit's
+# dynamic user reads it), renews it with its mTLS certificate and restarts
+# this unit. With the client's own CA (`[aws] issuer = "client"`) it is
+# /etc/omnifile/roles-anywhere.pem (`omnifile-setup aws-cert FILE`), with any
+# intermediates in /etc/omnifile/roles-anywhere-chain.pem.
+#
+# The ARNs are not secrets; the setup wizard writes them to
+# /etc/omnifile/aws-signing-helper.env:
+#   OMNIFILE_RA_TRUST_ANCHOR_ARN, OMNIFILE_RA_PROFILE_ARN, OMNIFILE_RA_ROLE_ARN,
+#   OMNIFILE_RA_REGION, OMNIFILE_RA_PORT (9911), optional OMNIFILE_RA_ENDPOINT
+#   (the Roles Anywhere interface endpoint with private networking),
+#   OMNIFILE_RA_SESSION_SECONDS, OMNIFILE_RA_INTERMEDIATES and (the edge
+#   CA's certificate) OMNIFILE_RA_CERTIFICATE.
+# Until the env file, the sealed key, the certificate and the binary all
+# exist the unit does not start, and S3 reads fail closed ("credentials:
+# credential helper ...").
+#
+# aws_signing_helper (AWS, Apache-2.0) runs as its own process (LICENSES.md).
+[Unit]
+Description=OmniFile AWS signing helper (IAM Roles Anywhere, loopback credentials for S3 reads)
+ConditionPathExists=/etc/omnifile/aws-signing-helper.env
+ConditionPathExists=/var/lib/omnifile/identity/roles-anywhere.cred
+# Either certificate (decision 50): the edge CA's, which the daemon installs
+# and renews (the default; the env file names it as OMNIFILE_RA_CERTIFICATE),
+# or the client CA's, installed by `omnifile-setup aws-cert`. "|" makes the
+# two an either-or.
+ConditionPathExists=|/var/lib/omnifile/roles-anywhere/cert.pem
+ConditionPathExists=|/etc/omnifile/roles-anywhere.pem
+ConditionFileIsExecutable=/usr/libexec/omnifile/aws_signing_helper
+# The daemon orders itself After= this unit and Wants= it, so credentials
+# are served before the first S3 read; enabled by the appliance preset
+# (80-omnifile.preset) and by edge/systemd/install.sh.
+Before=omnifile-edge.service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+EnvironmentFile=/etc/omnifile/aws-signing-helper.env
+LoadCredentialEncrypted=roles-anywhere-key:/var/lib/omnifile/identity/roles-anywhere.cred
+# Only the configured issuer's certificate will do (review on #32): if it is
+# missing (the other issuer's is there, say), the unit is skipped, not started
+# into a restart loop. The setup wizard removes the other issuer's on a switch.
+ExecCondition=/bin/sh -c 'test -s "$${OMNIFILE_RA_CERTIFICATE:-/etc/omnifile/roles-anywhere.pem}"'
+# $$ is a literal $ for systemd: the shell expands the variables, from the
+# environment systemd gives it (the env file and $CREDENTIALS_DIRECTORY).
+# Intermediates are passed only when their file has any (the edge CA signs
+# directly, so its chain file is empty).
+ExecStart=/bin/sh -c 'I=; [ -s "$${OMNIFILE_RA_INTERMEDIATES:-}" ] && I="$$OMNIFILE_RA_INTERMEDIATES"; \
+  exec /usr/libexec/omnifile/aws_signing_helper serve \
+  --certificate "$${OMNIFILE_RA_CERTIFICATE:-/etc/omnifile/roles-anywhere.pem}" \
+  --private-key "$$CREDENTIALS_DIRECTORY/roles-anywhere-key" \
+  --trust-anchor-arn "$$OMNIFILE_RA_TRUST_ANCHOR_ARN" --profile-arn "$$OMNIFILE_RA_PROFILE_ARN" \
+  --role-arn "$$OMNIFILE_RA_ROLE_ARN" --port "$${OMNIFILE_RA_PORT:-9911}" --hop-limit 1 \
+  $${OMNIFILE_RA_REGION:+--region "$$OMNIFILE_RA_REGION"} \
+  $${OMNIFILE_RA_ENDPOINT:+--endpoint "$$OMNIFILE_RA_ENDPOINT"} \
+  $${I:+--intermediates "$$I"} \
+  $${OMNIFILE_RA_SESSION_SECONDS:+--session-duration "$$OMNIFILE_RA_SESSION_SECONDS"}'
+Restart=on-failure
+RestartSec=5
+DynamicUser=yes
+# It needs its key, the certificate and the network, nothing else.
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

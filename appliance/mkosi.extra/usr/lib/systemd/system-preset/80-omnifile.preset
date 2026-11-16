@@ -1,0 +1,44 @@
+enable omnifile-kernel-check.service
+enable omnifile-edge.service
+# Annexes: idle until the catalog gives this edge one (it polls GET annexes).
+enable omnifile-annex.service
+# IAM Roles Anywhere credentials for the edge's S3 reads (decision 43). Its
+# Condition*= checks keep it idle until it is provisioned (the helper, its
+# sealed key and its ARNs).
+enable omnifile-aws-signing-helper.service
+enable omnifile-setup-auto.service
+enable omnifile-setup-console.service
+enable systemd-bless-boot.service
+enable systemd-repart.service
+enable systemd-networkd.service
+enable systemd-resolved.service
+enable systemd-timesyncd.service
+enable rsyslog.service
+enable ssh.service
+# The box's own SSH host keys, at first boot (the image ships none).
+enable omnifile-ssh-keygen.service
+# NFSv3 locking (NLM, on: the owner, 2026-11-04): rpc.statd has no [Install]. Ganesha's drop-in
+# in /usr (nfs-ganesha-omni.service.d/20-nlm.conf) wants it, so an updated box gets it too.
+# The inbound firewall: only the ports the shares, SSH and NFS locking use. Presets apply only
+# to a new /etc, so its vendor link in /usr (build.sh) starts it on an updated box too.
+enable omnifile-firewall.service
+# Ubuntu's own nftables.service would flush the appliance's firewall (its drop-in in /usr
+# keeps it from starting at all).
+disable nftables.service
+# No PCR policies: the edge's sealed keys are bound to the TPM and no PCRs, so firmware
+# updates don't lock them out (setup-wizard.md, "Keys"). On a VM with a TPM and Secure
+# Boot off, systemd-pcrlock-secureboot-policy fails at every boot (the smoke test found it).
+disable systemd-pcrlock-*
+# Updates start only when the setup wizard turns them on (its updates step enables both
+# timers), though the image's feed is set (GitHub Releases, decision 47).
+disable systemd-sysupdate.timer
+disable systemd-sysupdate-reboot.timer
+# systemd-boot stays the one the release signed (decision 48): systemd-boot-update would copy
+# the unsigned loader from a new /usr over it, which a Secure Boot box then refuses to start.
+# The UKIs, signed in the feed, carry the kernel updates.
+disable systemd-boot-update.service
+# Started by the setup wizard, once the share config exists (bound to the guard).
+disable smbd.service
+disable nmbd.service
+disable winbind.service
+disable nfs-ganesha-omni.service

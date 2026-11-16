@@ -1,0 +1,53 @@
+name: FSAL
+
+# Builds FSAL_OMNI against the pinned NFS-Ganesha (fsal/GANESHA_VERSION), runs
+# the load smoke test, then the stub-guard suite (fsal/tests/run_all.sh: wire
+# unit tests, the ported filer-spike B1-B5, fail-closed, parking, the stub
+# handshake, and Ganesha under the production unit's capabilities). The Ganesha toolchain image is cached in the
+# GitHub Actions cache, so it is rebuilt only when fsal/build/Containerfile
+# or fsal/GANESHA_VERSION changes; caches written on main are readable by PRs.
+
+# Manual only: the repo has no GitHub-hosted runners (owner's choice, for cost),
+# so lanes run locally. Run this one from the Actions tab when runners exist.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fsal-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fsal:
+    name: FSAL_OMNI (build + Ganesha load smoke + guard suite)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      IMAGE: omnifile-ganesha:ci
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+      - name: Build Ganesha toolchain image (cached)
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: fsal
+          file: fsal/build/Containerfile
+          tags: ${{ env.IMAGE }}
+          load: true
+          cache-from: type=gha,scope=fsal-ganesha
+          cache-to: type=gha,scope=fsal-ganesha,mode=max
+
+      - name: Build libfsalomni.so (-Wall -Wextra -Werror)
+        run: fsal/build/run.sh module
+
+      - name: Smoke test (ganesha.nfsd + FSAL OMNI over VFS, NFSv3/4.1/4.2 round trip)
+        env:
+          SMOKE_MOUNT: "yes"
+        run: fsal/build/run.sh smoke
+
+      - name: Guard suite (fake daemon; NFSv3/4.0/4.1/4.2; fail-closed; unit capabilities)
+        run: fsal/build/run.sh test

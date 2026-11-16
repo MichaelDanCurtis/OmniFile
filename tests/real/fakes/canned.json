@@ -1,0 +1,27 @@
+{
+  "_comment": "Answers the fake az gives to the reads the checks make (Graph, logs, metrics). First match wins. Shapes follow the REST references; values are made up (documentation SIDs and ids).",
+  "graph": [
+    {"match": "servicePrincipals\\?\\$filter=appId eq '00000003-0000-0000-c000-000000000000'",
+     "answer": {"value": [{"id": "graph-sp", "appRoles": [
+       {"id": "r1", "value": "User.Read.All"}, {"id": "r2", "value": "GroupMember.Read.All"},
+       {"id": "r3", "value": "TeamsAppInstallation.ReadWriteSelfForUser.All"}, {"id": "r4", "value": "Mail.Send"}]}]}},
+    {"match": "servicePrincipals/[^/]+/appRoleAssignments",
+     "answer": {"value": [{"appRoleId": "r1"}, {"appRoleId": "r2"}, {"appRoleId": "r3"}, {"appRoleId": "r4"}]}},
+    {"match": "/users\\?\\$filter=onPremisesSecurityIdentifier eq",
+     "answer": {"value": [{"id": "u-test"}]}},
+    {"match": "/transitiveMemberOf/",
+     "answer": {"value": [{"id": "g-readers", "displayName": "Proj-Readers", "onPremisesSyncEnabled": true,
+                           "onPremisesSecurityIdentifier": "S-1-5-21-1004336348-1177238915-682003330-1201"}]}},
+    {"match": "/memberOf/", "answer": {"value": [{"id": "g-readers"}]}},
+    {"match": "/transitiveMembers/",
+     "answer": {"value": [{"id": "u-test", "onPremisesSecurityIdentifier": "S-1-5-21-1004336348-1177238915-682003330-1105"}]}},
+    {"match": "get https://graph\\.microsoft\\.com/v1\\.0/users/[^?/]+\\?\\$select=id,onPremisesSecurityIdentifier",
+     "answer": {"id": "u-test", "onPremisesSecurityIdentifier": "S-1-5-21-1004336348-1177238915-682003330-1105"}}
+  ],
+  "logs": [
+    {"match": "app-insights query",
+     "answer": {"tables": [{"name": "PrimaryResult", "rows": [["omnifile_api_requests", 120], ["omnifile_queue_depth", 40]]}]}},
+    {"match": "log-analytics query.*botconnector",
+     "answer": [{"Log_s": "notify: botconnector sent activity (201)", "ContainerAppName_s": "rdry-worker"}]}
+  ]
+}

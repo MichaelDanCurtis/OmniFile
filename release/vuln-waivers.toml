@@ -1,0 +1,18 @@
+# Waivers for the release's vulnerability scan (release/scan.py). A finding at HIGH or above, or one nobody scored,
+# fails the release unless a waiver here covers it; an expired waiver fails it too. Each waiver needs:
+#   id        an id or alias of the finding (GHSA-, RUSTSEC-, PYSEC-, CVE-)
+#   package   the package it is in
+#   reason    why it can't be reached here, or why it doesn't matter, in a sentence someone can check
+#   owner     who removes it, and with what fix
+#   expires   a date, at most a release cycle or two away: then it is fixed, or renewed with a new reason
+#   lockfile  (optional) only there: a lockfile path, sbom:<name> (sbom:appliance) or image:<name>
+#   dry_run_only  (optional) true: a dry run may pass on it, a real release (scan.py --release) fails
+#   snapshot  (required with lockfile = "sbom:appliance") the archive snapshot it was checked against, as in
+#             appliance/mkosi.conf's Snapshot=. When the image moves to another snapshot the waiver must be looked at
+#             again: release/tests/test_last_round.py fails until it is removed or re-checked.
+# Prefer fixing: a lockfile update inside the allowed range needs no waiver.
+
+# (RUSTSEC-2026-0344 in ruzstd 0.8 was waived until ruzstd 0.9.1 replaced it.)
+# (USN-8944-1 in ca-certificates was waived, dry runs only, while the image was built from snapshot 20261020T000000Z,
+# which has ca-certificates 20260601~26.04.1. The image moved to 20261023T000000Z for the fix (#44): between the two
+# snapshots only ca-certificates and openssh-server changed (docs/milestones/results/wp2.md).)

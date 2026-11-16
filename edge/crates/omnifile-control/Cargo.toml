@@ -1,0 +1,37 @@
+[package]
+name = "omnifile-control"
+description = "OmniFile Gateway edge control-API client: enrolment, mTLS, feed, uploads outbox, SAS cache, reads, heartbeat"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+omnifile-blob = { path = "../omnifile-blob" }
+omnifile-integrity = { path = "../omnifile-integrity" }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-manual-roots-no-provider", "http2"] }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12", "logging"] }
+rcgen = { version = "0.14", default-features = false, features = ["crypto", "ring", "pem"] }
+ring = "0.17"
+base64 = "0.22"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+time = { version = "0.3", features = ["parsing", "formatting"] }
+tokio = { version = "1", features = ["rt", "sync", "time", "fs", "macros"] }
+thiserror = "2"
+tracing = "0.1"
+uuid = { version = "1", features = ["v7"] }
+fastrand = "2"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "process", "io-util"] }
+rcgen = { version = "0.14", default-features = false, features = ["crypto", "ring", "pem", "x509-parser"] }
+tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12", "logging"] }
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio", "server", "http1"] }
+http-body-util = "0.1"
+serde_yaml_ng = "0.10"
+jsonschema = { version = "0.58", default-features = false }
+tempfile = "3"
+libc = "0.2"
+bytes = "1"

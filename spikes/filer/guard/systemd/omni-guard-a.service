@@ -1,0 +1,27 @@
+[Unit]
+Description=OmniFile stub guard spike (filer spike part A)
+# smbd is bound to this unit (see smbd drop-in); nothing serves the volume without an armed guard.
+
+[Service]
+Type=notify
+NotifyAccess=main
+EnvironmentFile=-/srv/omni-a/state/guard.env
+ExecStart=/srv/omni-a/target/release/omnifile-guard --fill-mount /srv/omni-a/.fill --private-ns $GUARD_ARGS
+# Keep the fanotify group alive across crashes, restarts and even "systemctl stop".
+# NOTE: Preserve=yes only holds while the unit stays loaded; an inactive unit that nothing
+# references is garbage-collected and its fd store closed. Keep the unit enabled.
+FileDescriptorStoreMax=8
+FileDescriptorStorePreserve=yes
+Restart=always
+RestartSec=2
+# Crash + auto-restart must not propagate to smbd (Requires=/BindsTo=): go straight back to
+# "activating". Without this, a guard crash stopped (BindsTo) or restarted (Requires) smbd.
+RestartMode=direct
+# Every in-flight event holds an fd; if the kernel cannot create one it DENIES the event.
+LimitNOFILE=1048576
+# SIGTERM to the main process on stop, SIGKILL to anything left after TimeoutStopSec.
+KillMode=mixed
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,25 @@
+# The appliance's inbound firewall (/usr/lib/omnifile/firewall.nft): loaded before any network
+# comes up, so no port is ever open that the list doesn't name. In /usr, so an update carries
+# a new list with the release.
+# It fails closed: systemd-networkd, systemd-resolved and every listener (ssh, smbd, Ganesha,
+# rpcbind, statd) require it and start after it (drop-ins from build.sh), so if `nft -f`
+# fails there is no network and nothing listens. Ubuntu's nftables.service, which would flush this table, never
+# starts (its drop-in). Started through its vendor link in /usr, on an updated box too.
+[Unit]
+Description=OmniFile: the inbound firewall
+DefaultDependencies=no
+Wants=network-pre.target
+# Before sysinit.target: ahead of every service and socket of the normal boot, and of
+# systemd-resolved, which starts early too (it also requires it, build.sh).
+Before=network-pre.target sysinit.target shutdown.target
+After=local-fs.target
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nft -f /usr/lib/omnifile/firewall.nft
+ExecStop=/usr/sbin/nft delete table inet omnifile
+
+[Install]
+WantedBy=sysinit.target

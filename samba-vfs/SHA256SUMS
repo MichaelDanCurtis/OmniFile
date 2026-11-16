@@ -1,0 +1,4 @@
+# SHA-256 of Samba release tarballs from download.samba.org, each recorded after
+# `gpg --verify samba-<v>.tar.asc` (of the uncompressed tar) passed with Samba's
+# key 81F5 E283 2BD2 545A 1897  B713 AA99 442F B680 B620.
+e3dabd8b5e42dc97669fa0faef032510a94e496b58f7067082e5036d88f0e702  samba-4.23.6.tar.gz

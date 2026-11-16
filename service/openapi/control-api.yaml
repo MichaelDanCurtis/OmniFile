@@ -1,0 +1,2546 @@
+openapi: 3.1.0
+info:
+  title: OmniFile edge control API
+  version: 0.1.0
+  summary: Private API between the omnifile-edge daemon and the OmniFile service.
+  description: |
+    The prose contract is docs/contracts/control-api.md; keep the two in step.
+    Every call except POST /v0/enrol uses mutual TLS with a client certificate
+    issued by the OmniFile CA. The edge_id in the path must match the
+    certificate. Identifiers are 64-bit integers sent as decimal strings.
+    Every POST needs an Idempotency-Key header.
+  license:
+    name: BUSL-1.1
+    identifier: BUSL-1.1
+servers:
+  - url: https://omnifile.internal
+    description: The `api` container app (clientCertificateMode require), private network only.
+  - url: https://omnifile-enrol.internal
+    description: The `enrol` container app (no client certificate), for POST /v0/enrol only.
+security:
+  - edgeCertificate: []
+
+tags:
+  - name: enrolment
+  - name: feed
+  - name: namespace
+  - name: data
+  - name: recall
+  - name: acl
+  - name: ops
+  - name: teams
+
+paths:
+  /v0/enrol:
+    post:
+      tags: [enrolment]
+      operationId: enrol
+      summary: Exchange a one-time enrolment token and a CSR for a client certificate.
+      security: []
+      servers:
+        - url: https://omnifile-enrol.internal
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, csr_pem, facts]
+              properties:
+                token: { type: string, minLength: 32 }
+                csr_pem: { type: string, description: PKCS#10 CSR for an ECDSA P-256 key. Subject is ignored. }
+                facts: { $ref: "#/components/schemas/EdgeFacts" }
+      responses:
+        "201":
+          description: Enrolled.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/IssuedCertificate" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/certificate:
+    post:
+      tags: [enrolment]
+      operationId: renewCertificate
+      summary: Renew the client certificate (from day 20 of 30), authenticated by the current one.
+      description: |
+        api authenticates the edge, checks `proof` (possession of the
+        CURRENT certificate's private key), then forwards the CSR to enrol's
+        internal POST /internal/v0/sign; enrol is the only CA signer.
+        A retry after a lost response resends the identical body with the
+        same Idempotency-Key (the stored response is returned).
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/EdgeVersion"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [csr_pem, proof]
+              properties:
+                csr_pem: { type: string }
+                proof: { $ref: "#/components/schemas/RenewalProof" }
+      responses:
+        "201":
+          description: New certificate. The previous one stays valid until it expires.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/IssuedCertificate" }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/aws-certificate:
+    post:
+      tags: [enrolment]
+      operationId: rolesAnywhereCertificate
+      summary: The edge's IAM Roles Anywhere certificate, from OmniFile's edge CA (decision 50).
+      description: |
+        For the edge's TPM-sealed AWS key, never its mTLS key. The CSR's
+        self-signature proves the edge holds that key; `proof` is signed by
+        the presented mTLS certificate's key over
+        `omnifile-roles-anywhere-v1` LF edge_id LF signed_at LF
+        hex(SHA-256(CSR DER)), within 5 minutes. api forwards the CSR to
+        enrol's POST /internal/v0/sign (`purpose: roles_anywhere`). The
+        first certificate pins the key; a CSR for another key gets
+        `409 aws_key_mismatch`. Subject OU=omnifile-roles-anywhere,
+        CN=omnifile-edge-<edge_id>, SAN urn:omnifile:edge:<edge_id>, EKU
+        clientAuth, 30 days; renewed with the mTLS certificate, from
+        `renew_after`. A revoked edge is refused (`403 edge_revoked`).
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/EdgeVersion"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [csr_pem, proof]
+              properties:
+                csr_pem: { type: string }
+                proof: { $ref: "#/components/schemas/RenewalProof" }
+      responses:
+        "201":
+          description: The Roles Anywhere certificate. Earlier ones stay valid until they expire.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RolesAnywhereCertificate" }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/heartbeat:
+    post:
+      tags: [ops]
+      operationId: heartbeat
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/EdgeVersion"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version]
+              properties:
+                version: { type: string }
+                kernel: { type: string }
+                guard_state: { type: string, enum: [armed, degraded, down] }
+                landing_used_bytes: { type: integer, format: int64 }
+                landing_capacity_bytes: { type: integer, format: int64 }
+                cache_used_bytes: { type: integer, format: int64 }
+                outbox_depth: { type: integer }
+                feed_cursor: { $ref: "#/components/schemas/Cursor" }
+                fills_running: { type: integer, description: "Fills running now (recalls and online fetches)." }
+                recalls_waiting: { type: integer, description: "Recalls a reader waits on, not yet filled." }
+                data_free_bytes: { type: integer, format: int64, description: "Free bytes on the data volume." }
+                data_capacity_bytes: { type: integer, format: int64 }
+                fsal_connections: { type: integer, description: "Ganesha instances connected to the daemon socket." }
+                recovery_used: { type: integer, enum: [0, 1], description: "1 while the break-glass account has been used since it was last sealed. Absent on a box without one." }
+                quiet_default_s: { type: integer, minimum: 1, maximum: 86400, description: "The quiet period a share with none of its own gets on this edge (`[commit] quiet_s`). Sent at all, it says the edge applies each share's own period. Decision 67." }
+                quiet_worm_default_s: { type: integer, minimum: 1, maximum: 86400, description: "The same for a WORM share (`[commit] worm_quiet_s`)." }
+                quiet_stale_s: { type: integer, minimum: 0, description: "Seconds the edge has failed to read its shares' quiet periods, from the first failure; 0 while reads work. From 300 the Edges page shows the edge needs attention, and an alert fires." }
+                recall_superseded: { type: integer, enum: [0, 1], description: "1: the edge knows the recall state `superseded`. An edge that does not send it is sent `cancelled` in its place in the feed." }
+      responses:
+        "200":
+          description: Service view of this edge.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [server_time, min_edge_version, config_version]
+                properties:
+                  server_time: { type: string, format: date-time }
+                  min_edge_version: { type: string }
+                  feed_lag_events: { type: integer, format: int64 }
+                  config_version: { $ref: "#/components/schemas/Id" }
+                  certificate_renew_after: { type: string, format: date-time }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/feed:
+    get:
+      tags: [feed]
+      operationId: readFeed
+      summary: Ordered pull feed of catalog changes for this edge (long poll).
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/EdgeVersion"
+        - name: after
+          in: query
+          required: true
+          schema: { $ref: "#/components/schemas/Cursor" }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000, default: 500 }
+        - name: wait
+          in: query
+          description: Seconds to hold the request open when there is nothing new.
+          schema: { type: integer, minimum: 0, maximum: 30, default: 0 }
+      responses:
+        "200":
+          description: A page of events. Continue from `next` even when `events` is empty.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [events, next, reset_required]
+                properties:
+                  events:
+                    type: array
+                    items: { $ref: "#/components/schemas/Event" }
+                  next: { $ref: "#/components/schemas/Cursor" }
+                  reset_required:
+                    type: boolean
+                    description: The cursor is older than retention (7 days minimum); re-bootstrap.
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/feed/ack:
+    post:
+      tags: [feed]
+      operationId: ackFeed
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [cursor]
+              properties:
+                cursor: { $ref: "#/components/schemas/Cursor" }
+      responses:
+        "204": { description: Recorded. }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/snapshot:
+    get:
+      tags: [feed]
+      operationId: readSnapshot
+      summary: Paged snapshot of a dataset (or one directory), in file_id order.
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - name: dataset_id
+          in: query
+          required: true
+          schema: { $ref: "#/components/schemas/Id" }
+        - name: dir_id
+          in: query
+          schema: { $ref: "#/components/schemas/Id" }
+        - name: after_file_id
+          in: query
+          schema: { $ref: "#/components/schemas/Id" }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10000, default: 5000 }
+      responses:
+        "200":
+          description: One page. `as_of` is set on the first page; read the feed from it afterwards.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [files, more]
+                properties:
+                  as_of: { $ref: "#/components/schemas/Cursor" }
+                  dataset: { $ref: "#/components/schemas/DatasetRow" }
+                  shares: { type: array, items: { $ref: "#/components/schemas/ShareRow" } }
+                  acls: { type: array, items: { $ref: "#/components/schemas/AclRow" } }
+                  files: { type: array, items: { $ref: "#/components/schemas/FileRow" } }
+                  more: { type: boolean }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/snapshot-exports:
+    post:
+      tags: [feed]
+      operationId: startSnapshotExport
+      summary: Start a bulk export (zstd NDJSON parts in blob) for a large dataset.
+      description: |
+        409 `layout_conflict` when the dataset's backend has no export area
+        (S3): page through `snapshot` instead.
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dataset_id]
+              properties:
+                dataset_id: { $ref: "#/components/schemas/Id" }
+      responses:
+        "202":
+          description: Export started.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SnapshotExport" }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/snapshot-exports/{export_id}:
+    get:
+      tags: [feed]
+      operationId: getSnapshotExport
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - name: export_id
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/Id" }
+      responses:
+        "200":
+          description: Export state, and the parts when ready.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SnapshotExport" }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/digest:
+    get:
+      tags: [feed]
+      operationId: getDigest
+      summary: Order-independent digest of live rows, for reconciliation.
+      description: |
+        `digest` is the XOR over live rows of the first 8 bytes of
+        SHA-256("<file_id>:<entity_version>"), as 16 hex digits. Without
+        `dir_id` it covers the dataset (computed when asked; `as_of` is taken first); with
+        `dir_id`, that directory's direct children (computed on demand).
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - name: dataset_id
+          in: query
+          required: true
+          schema: { $ref: "#/components/schemas/Id" }
+        - name: dir_id
+          in: query
+          schema: { $ref: "#/components/schemas/Id" }
+      responses:
+        "200":
+          description: Digest.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [as_of, live_rows, digest]
+                properties:
+                  as_of: { type: string, format: date-time }
+                  live_rows: { type: integer, format: int64 }
+                  digest: { type: string, pattern: "^[0-9a-f]{16}$" }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/asof:
+    get:
+      tags: [namespace]
+      operationId: directoryAsOf
+      summary: A directory's entries as they were at time t (rewind, decision 30).
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - name: dir_id
+          in: query
+          required: true
+          schema: { $ref: "#/components/schemas/Id" }
+        - name: t
+          in: query
+          required: true
+          schema: { type: string, format: date-time }
+        - name: after
+          in: query
+          description: Name to continue after (names sort bytewise).
+          schema: { type: string }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 10000, default: 5000 }
+      responses:
+        "200":
+          description: Entries valid at t, each with the version and location valid then.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [entries, more]
+                properties:
+                  entries: { type: array, items: { $ref: "#/components/schemas/FileRow" } }
+                  more: { type: boolean }
+        "410":
+          description: "`beyond_rewind_depth`: t is older than the share's rewind depth."
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/changes:
+    post:
+      tags: [namespace]
+      operationId: sendChanges
+      summary: Ordered batch of namespace changes from the edge outbox.
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/EdgeVersion"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ops]
+              properties:
+                ops:
+                  type: array
+                  minItems: 1
+                  maxItems: 1000
+                  items: { $ref: "#/components/schemas/ChangeOp" }
+      responses:
+        "200":
+          description: One result per op, in order.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results]
+                properties:
+                  results:
+                    type: array
+                    items: { $ref: "#/components/schemas/ChangeResult" }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/uploads:
+    post:
+      tags: [data]
+      operationId: startUpload
+      summary: Upload intent for a committed write. Returns a write credential, or a dedupe hit.
+      description: |
+        upload_id is the pending content version's id (equal to version_id).
+        A replayed op_id returns the same pending upload with a fresh write
+        credential, or `dedupe` once that version is committed.
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/EdgeVersion"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [op_id, file, size, mtime_ns, blake3, crc64nvme, block_size]
+              properties:
+                op_id: { type: string, description: The outbox `commit` op id. }
+                file: { $ref: "#/components/schemas/FileRef" }
+                size: { type: integer, format: int64, minimum: 0 }
+                mtime_ns: { $ref: "#/components/schemas/Nanos" }
+                blake3: { $ref: "#/components/schemas/Blake3" }
+                crc64nvme: { $ref: "#/components/schemas/Crc64" }
+                block_size: { type: integer, format: int64, minimum: 1 }
+                base_version_id:
+                  oneOf:
+                    - { $ref: "#/components/schemas/Id" }
+                    - { type: "null" }
+      responses:
+        "201":
+          description: Upload, or dedupe.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    required: [action, upload_id, version_id, target, block_size, set_tier]
+                    properties:
+                      action: { const: upload }
+                      upload_id: { $ref: "#/components/schemas/Id" }
+                      version_id: { $ref: "#/components/schemas/Id" }
+                      target: { $ref: "#/components/schemas/Credential" }
+                      block_size: { type: integer, format: int64 }
+                      set_tier:
+                        type: boolean
+                        description: False means do not send x-ms-access-tier (Smart accounts).
+                  - type: object
+                    required: [action, version_id]
+                    properties:
+                      action: { const: dedupe }
+                      version_id: { $ref: "#/components/schemas/Id" }
+        "409": { $ref: "#/components/responses/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/uploads/{upload_id}/complete:
+    post:
+      tags: [data]
+      operationId: completeUpload
+      summary: Commit the version after the block list is committed.
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/UploadId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [crc64nvme, blake3, size, blocks]
+              properties:
+                crc64nvme: { $ref: "#/components/schemas/Crc64" }
+                blake3: { $ref: "#/components/schemas/Blake3" }
+                size: { type: integer, format: int64 }
+                blocks:
+                  type: array
+                  maxItems: 50000
+                  description: |
+                    The committed block list, in order: each block's id (as sent to
+                    Put Block / Put Block List), length, and the CRC64-NVME sent as its
+                    x-ms-content-crc64. The lengths must add up to `size`, the CRCs must
+                    combine to `crc64nvme`, and the blob version's committed block list
+                    (Get Block List) must be exactly these ids and lengths.
+                  items:
+                    type: object
+                    required: [id, length, crc64nvme]
+                    properties:
+                      id: { type: string, maxLength: 88 }
+                      length: { type: integer, format: int64, minimum: 0 }
+                      crc64nvme: { $ref: "#/components/schemas/Crc64" }
+                etag: { type: string, description: Informational; the service records the ETag it verified. }
+                backend_version_id:
+                  type: string
+                  description: |
+                    x-ms-version-id from Put Block List. The service checks and records
+                    that version; reads and later operations use it.
+      responses:
+        "200":
+          description: Version committed.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [version_id, committed_at]
+                properties:
+                  version_id: { $ref: "#/components/schemas/Id" }
+                  committed_at: { type: string, format: date-time }
+                  retention_until:
+                    type: [string, "null"]
+                    format: date-time
+                    description: Set on WORM shares (decision 31).
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/uploads/{upload_id}/abort:
+    post:
+      tags: [data]
+      operationId: abortUpload
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/UploadId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      responses:
+        "204": { description: Pending version and location dropped. }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/credentials:
+    post:
+      tags: [data]
+      operationId: mintCredential
+      summary: Credential to read one file version, or to keep uploading one.
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  required: [access, file_id, version_id]
+                  properties:
+                    access: { const: read }
+                    file_id: { $ref: "#/components/schemas/Id" }
+                    version_id: { $ref: "#/components/schemas/Id" }
+                - type: object
+                  required: [access, upload_id]
+                  properties:
+                    access: { const: write }
+                    upload_id: { $ref: "#/components/schemas/Id" }
+      responses:
+        "200":
+          description: Credential.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Credential" }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/files/{file_id}/stub/prepare:
+    post:
+      tags: [data]
+      operationId: prepareStub
+      summary: Ask to stub a version; returns a 10-minute lease if allowed.
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/FileId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version_id]
+              properties:
+                version_id: { $ref: "#/components/schemas/Id" }
+      responses:
+        "200":
+          description: Lease granted.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [lease_id, resident_bytes, lease_expires_at]
+                properties:
+                  lease_id: { $ref: "#/components/schemas/LeaseId" }
+                  resident_bytes: { type: integer, format: int64 }
+                  lease_expires_at: { type: string, format: date-time }
+        "409":
+          description: "`stub_not_allowed` (with the reason) or `version_conflict`."
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/files/{file_id}/stub/commit:
+    post:
+      tags: [data]
+      operationId: commitStub
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/FileId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lease_id, version_id, resident_bytes]
+              properties:
+                lease_id: { $ref: "#/components/schemas/LeaseId" }
+                version_id: { $ref: "#/components/schemas/Id" }
+                resident_bytes: { type: integer, format: int64, minimum: 0 }
+      responses:
+        "204": { description: File is now a stub. }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/files/{file_id}/stub/skip:
+    post:
+      tags: [data]
+      operationId: skipStub
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/FileId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version_id, reason]
+              properties:
+                version_id: { $ref: "#/components/schemas/Id" }
+                reason:
+                  type: string
+                  enum: [version_mismatch, open_for_write, lease_refused, local_error]
+                detail: { type: string }
+      responses:
+        "204": { description: Recorded; the service clears or reschedules the stub. }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/files/{file_id}/filled:
+    post:
+      tags: [data]
+      operationId: fileFilled
+      summary: An online fetch (no recall) filled a stub; the file is resident again once every byte is local.
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/FileId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version_id, resident_bytes]
+              properties:
+                version_id: { $ref: "#/components/schemas/Id" }
+                resident_bytes: { type: integer, format: int64 }
+      responses:
+        "204": { description: Recorded (idempotent). }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/recalls:
+    post:
+      tags: [recall]
+      operationId: requestRead
+      summary: A read reached non-local bytes. Returns "online" (read it now) or a recall to wait on.
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+        - $ref: "#/components/parameters/EdgeVersion"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [file_id, version_id, requester, on_open]
+              properties:
+                file_id: { $ref: "#/components/schemas/Id" }
+                version_id: { $ref: "#/components/schemas/Id" }
+                offset: { type: integer, format: int64, minimum: 0 }
+                length: { type: integer, format: int64, minimum: 0 }
+                requester: { $ref: "#/components/schemas/Requester" }
+                on_open: { type: string, enum: [wait, fail, auto] }
+                pinned:
+                  type: boolean
+                  default: false
+                  description: |
+                    The reader asked for this version itself (a rewind placeholder:
+                    `.snapshots`, Previous Versions). Its recall is not ended when
+                    the file is replaced or deleted (control-api.md section 4.4).
+      responses:
+        "200":
+          description: Online now, or recall started or joined.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    required: [status, credential]
+                    properties:
+                      status: { const: online }
+                      credential: { $ref: "#/components/schemas/Credential" }
+                  - type: object
+                    required: [status, recall_id, state, joined, decision, note]
+                    properties:
+                      status: { const: recall }
+                      recall_id: { $ref: "#/components/schemas/Id" }
+                      state: { $ref: "#/components/schemas/RecallState" }
+                      joined: { type: boolean }
+                      eta:
+                        type: [string, "null"]
+                        format: date-time
+                        description: Null when no time can be promised (Azure, files over 10 GB).
+                      eta_confidence: { type: string, enum: [provider_sla, measured, none] }
+                      decision: { type: string, enum: [wait, fail] }
+                      note: { type: string, description: Text for <file>.RECALLING.txt. }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/recalls/{recall_id}/filled:
+    post:
+      tags: [recall]
+      operationId: recallFilled
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - name: recall_id
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/Id" }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version_id, resident_bytes]
+              properties:
+                version_id: { $ref: "#/components/schemas/Id" }
+                resident_bytes: { type: integer, format: int64 }
+      responses:
+        "204": { description: Recall is available; users are told. }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/recalls/{recall_id}/failed:
+    post:
+      tags: [recall]
+      operationId: recallFailed
+      summary: The edge could not fill a downloading recall; it becomes failed, with the reason.
+      description: |
+        Only a `downloading` recall can be failed this way. Repeats, and a
+        recall already failed, cancelled or superseded, answer 204 and change
+        nothing; any other state is 409 version_conflict. A reader who opens
+        the file again starts a new recall (control-api.md section 4.4).
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - name: recall_id
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/Id" }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [version_id, reason]
+              properties:
+                version_id: { $ref: "#/components/schemas/Id" }
+                reason: { type: string, maxLength: 500, description: "Why the fill failed, for the portal and the Teams card." }
+      responses:
+        "204": { description: Recall is failed; users are told. }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/acls:
+    post:
+      tags: [acl]
+      operationId: putAcls
+      summary: Store ACLs the service does not know yet (content-addressed per dataset).
+      description: |
+        The service recomputes each sha256 over the canonical form
+        (control-api.md section 4.6) and refuses a mismatch; it derives
+        read_sids itself. dataset_id must be one of this edge's datasets.
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dataset_id, acls]
+              properties:
+                dataset_id: { $ref: "#/components/schemas/Id" }
+                acls:
+                  type: array
+                  maxItems: 1000
+                  items: { $ref: "#/components/schemas/AclBody" }
+      responses:
+        "200":
+          description: sha256 -> acl_id for every ACL sent.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [acl_ids]
+                properties:
+                  acl_ids:
+                    type: object
+                    additionalProperties: { $ref: "#/components/schemas/Id" }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/acl-scans:
+    post:
+      tags: [acl]
+      operationId: startAclScan
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dataset_id, kind]
+              properties:
+                dataset_id: { $ref: "#/components/schemas/Id" }
+                kind: { type: string, enum: [full, on_change] }
+      responses:
+        "201":
+          description: Scan started.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [scan_id]
+                properties:
+                  scan_id: { $ref: "#/components/schemas/Id" }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/acl-scans/{scan_id}/complete:
+    post:
+      tags: [acl]
+      operationId: completeAclScan
+      description: |
+        Idempotent by scan_id: the same counts again answer 204, different
+        ones 409 version_conflict. entries_changed must not exceed entries_seen.
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - name: scan_id
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/Id" }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entries_seen, entries_changed]
+              properties:
+                entries_seen: { type: integer, format: int64, minimum: 0 }
+                entries_changed: { type: integer, format: int64, minimum: 0 }
+      responses:
+        "204": { description: Recorded. }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/reads:
+    post:
+      tags: [ops]
+      operationId: reportReads
+      summary: Read times for the last_read policy clock, one entry per file per hour.
+      description: |
+        The service keeps the later of the stored and reported times, so late
+        or repeated batches are harmless. No feed events result.
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reads]
+              properties:
+                reads:
+                  type: array
+                  maxItems: 10000
+                  items:
+                    type: object
+                    required: [file_id, last_read_at]
+                    properties:
+                      file_id: { $ref: "#/components/schemas/Id" }
+                      last_read_at: { type: string, format: date-time }
+      responses:
+        "200":
+          description: Applied.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accepted, unknown_file_ids]
+                properties:
+                  accepted: { type: integer }
+                  unknown_file_ids: { type: array, items: { $ref: "#/components/schemas/Id" } }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/audit:
+    post:
+      tags: [ops]
+      operationId: sendAudit
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [records]
+              properties:
+                records:
+                  type: array
+                  maxItems: 5000
+                  items: { $ref: "#/components/schemas/AuditRecord" }
+      responses:
+        "204": { description: Stored. }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/annexes:
+    get:
+      tags: [annex]
+      operationId: listAnnexes
+      summary: The annexes this edge runs (annex.md phase A1), one omnifile-annex unit each.
+      description: |
+        Live annexes only (registered, baseline, active, paused); a retired annex's unit
+        stops. `ruleset` is the running rule set (A1: the fixed Copy template). The edge
+        polls this; enums are open.
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+      responses:
+        "200":
+          description: Annexes.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [annexes]
+                properties:
+                  annexes:
+                    type: array
+                    items: { $ref: "#/components/schemas/EdgeAnnex" }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/annex-events:
+    post:
+      tags: [annex]
+      operationId: postAnnexEvents
+      summary: One annex's events, in order (control-api.md section 4.8).
+      description: |
+        Each event is applied in its own savepoint; the results say, per event, whether it
+        was applied and, for `arrived` and `changed`, the catalog file to upload to through
+        `uploads` (`copy: true`). `left` tombstones the catalog file and keeps the copy
+        (decision 40, 51). Kinds are open: an unknown kind is rejected for that event only.
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [annex_id, events]
+              properties:
+                annex_id: { $ref: "#/components/schemas/Id" }
+                events:
+                  type: array
+                  minItems: 1
+                  maxItems: 1000
+                  items: { $ref: "#/components/schemas/AnnexEvent" }
+      responses:
+        "200":
+          description: One result per event, in order.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results]
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      required: [index, status]
+                      properties:
+                        index: { type: integer }
+                        status: { type: string, x-extensible-enum: [applied, rejected] }
+                        code: { type: string }
+                        detail: { type: string }
+                        file_id: { oneOf: [{ $ref: "#/components/schemas/Id" }, { type: "null" }] }
+                        content_version_id:
+                          oneOf: [{ $ref: "#/components/schemas/Id" }, { type: "null" }]
+                        version_id: { $ref: "#/components/schemas/Id" }
+                        copy: { type: boolean }
+                        verified: { type: boolean }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/annexes/{annex_id}/records:
+    get:
+      tags: [annex]
+      operationId: getAnnexRecords
+      summary: The catalog's record of an annex's live files, by path, for reconciliation.
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - name: annex_id
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/Id" }
+        - name: after
+          in: query
+          description: The last path of the previous page.
+          schema: { type: string, maxLength: 4096 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 5000, default: 1000 }
+      responses:
+        "200":
+          description: Records in path order; `next` is the `after` of the next page.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [records, next]
+                properties:
+                  next: { type: [string, "null"] }
+                  records:
+                    type: array
+                    items:
+                      type: object
+                      required: [path, file_id, nas_file_id, size, verified, copy_ok]
+                      properties:
+                        path: { type: string }
+                        file_id: { $ref: "#/components/schemas/Id" }
+                        nas_file_id: { type: string }
+                        size: { type: integer, format: int64 }
+                        mtime_ns: { oneOf: [{ $ref: "#/components/schemas/Nanos" }, { type: "null" }] }
+                        ctime_ns: { oneOf: [{ $ref: "#/components/schemas/Nanos" }, { type: "null" }] }
+                        copied_version_id:
+                          oneOf: [{ $ref: "#/components/schemas/Id" }, { type: "null" }]
+                        copied_size: { type: [integer, "null"], format: int64 }
+                        copied_mtime_ns:
+                          oneOf: [{ $ref: "#/components/schemas/Nanos" }, { type: "null" }]
+                        copied_ctime_ns:
+                          oneOf: [{ $ref: "#/components/schemas/Nanos" }, { type: "null" }]
+                        verified: { type: boolean }
+                        copy_ok: { type: boolean }
+                        refused:
+                          type: boolean
+                          description: |
+                            The read-back refused this copy and the service wants another. A
+                            reconciliation the service asked for (`reconcile_asked_at`) copies
+                            again only these; `copy_ok` is false while a read-back is pending too.
+                        copy_stopped:
+                          type: boolean
+                          description: |
+                            An ArchiveAdmin stopped copies of these bytes again: no
+                            reconciliation copies the record, the unit's own included, until
+                            a version verifies or the admin resumes. A file changed on the NAS
+                            is still copied. `refused` is false while it is.
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/annex-dry-runs:
+    get:
+      tags: [annex]
+      operationId: listAnnexDryRuns
+      summary: Rule-set previews waiting for this edge's annexes (read-only work).
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - name: annex_id
+          in: query
+          schema: { $ref: "#/components/schemas/Id" }
+      responses:
+        "200":
+          description: Up to 20, oldest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [dry_runs]
+                properties:
+                  dry_runs:
+                    type: array
+                    items:
+                      type: object
+                      required: [run_id, annex_id, body]
+                      properties:
+                        run_id: { $ref: "#/components/schemas/Id" }
+                        annex_id: { $ref: "#/components/schemas/Id" }
+                        body: { type: object, additionalProperties: true }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/annex-dry-runs/{run_id}:
+    post:
+      tags: [annex]
+      operationId: answerAnnexDryRun
+      summary: >-
+        `running` when the edge takes a preview (409 version_conflict if it no longer
+        waits: replaced by a newer draft, or expired), then its answer, once (a later
+        answer leaves the first).
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - name: run_id
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/Id" }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [state]
+              properties:
+                state: { type: string, enum: [running, done, failed] }
+                report: { type: object, additionalProperties: true, description: done only. }
+                error: { type: string, maxLength: 2000, description: failed only. }
+      responses:
+        "200":
+          description: The run's state now.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [run_id, state]
+                properties:
+                  run_id: { $ref: "#/components/schemas/Id" }
+                  state: { type: string, x-extensible-enum: [requested, running, done, failed] }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/annex-removal-tickets:
+    post:
+      tags: [annex]
+      operationId: annexRemovalTickets
+      summary: >-
+        A ticket per file the annex's rules would remove, or why not (not_yet: ask
+        again later; refused: don't). Only while the annex's removals are live.
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [annex_id, candidates]
+              properties:
+                annex_id: { $ref: "#/components/schemas/Id" }
+                candidates:
+                  type: array
+                  minItems: 1
+                  maxItems: 100
+                  items:
+                    type: object
+                    required: [file_id, version_id, path, nas_file_id, size, mtime_ns,
+                               rules_version]
+                    properties:
+                      file_id: { $ref: "#/components/schemas/Id" }
+                      version_id: { $ref: "#/components/schemas/Id" }
+                      path: { type: string, maxLength: 4096 }
+                      nas_file_id: { type: string, maxLength: 128 }
+                      size: { type: integer, format: int64 }
+                      mtime_ns: { $ref: "#/components/schemas/Nanos" }
+                      ctime_ns: { oneOf: [{ $ref: "#/components/schemas/Nanos" }, { type: "null" }] }
+                      rule: { type: string, maxLength: 64 }
+                      rules_version:
+                        type: integer
+                        description: The rule set version the edge decided the removal under.
+      responses:
+        "200":
+          description: One result per candidate.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [results]
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      required: [file_id, status]
+                      properties:
+                        file_id: { $ref: "#/components/schemas/Id" }
+                        status: { type: string, x-extensible-enum: [ticket, not_yet, refused] }
+                        reason:
+                          type: string
+                          x-extensible-enum: [paused, dry_run, not_confirmed, no_removing_rules,
+                                              not_archive_admin_approved, rule_not_removing,
+                                              legal_hold, annex_not_active, needs_azure_read,
+                                              copy_not_verified, outside_window, rate,
+                                              changed_since_copied, not_the_current_copy, gone,
+                                              not_in_annex, path_mismatch, rule_set_changed,
+                                              rules_version_required]
+                        removal: { $ref: "#/components/schemas/AnnexRemoval" }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/annex-removals/{removal_id}:
+    post:
+      tags: [annex]
+      operationId: annexRemovalStep
+      summary: >-
+        Ask before each write (hide, delete: proceed or not; every gate is checked
+        on every ask, the grace and the rule set version included), and report each
+        step after it (hidden, deleted, pointer, done, cancelled, stuck: a hidden
+        file the edge couldn't put back). A report already recorded is answered as
+        it is.
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - name: removal_id
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/Id" }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [step]
+              properties:
+                step:
+                  type: string
+                  enum: [hide, hidden, delete, deleted, pointer, done, cancelled, stuck]
+                hidden_name: { type: string, maxLength: 512, description: hidden and stuck. }
+                written: { type: boolean, description: pointer only. }
+                reason: { type: string, maxLength: 200, description: cancelled and stuck. }
+                kept_as:
+                  type: [string, "null"]
+                  maxLength: 255
+                  description: >-
+                    cancelled only: a user's file the removal's W1 hid by mistake (a
+                    save-by-rename just before it, reason swapped_at_hide), kept under this
+                    -replaced- name because its own was taken. The service raises a Problem.
+      responses:
+        "200":
+          description: The removal's state now, and whether to go on.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [removal_id, state, proceed]
+                properties:
+                  removal_id: { $ref: "#/components/schemas/Id" }
+                  state:
+                    type: string
+                    x-extensible-enum: [ticketed, hidden, deleting, deleted, done, cancelled,
+                                        stuck]
+                  proceed: { type: boolean }
+                  reason: { type: [string, "null"] }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/annex-placement-tickets:
+    post:
+      tags: [annex]
+      operationId: annexPlacementTickets
+      summary: >-
+        Tickets for the ready placements (annex.md section 4.6, phase A3.3) whose target
+        is a folder of this annex's filer, at most 10, each after every gate; a placement
+        that no longer passes them fails (`failed`). A paused or not yet readable one waits.
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [annex_id]
+              properties:
+                annex_id: { $ref: "#/components/schemas/Id" }
+                in_hand:
+                  type: array
+                  items: { $ref: "#/components/schemas/Id" }
+                  description: >-
+                    The placements the edge has journalled. One under way and listed here is
+                    only checked against its gates: no new read credential is minted.
+                renew:
+                  type: array
+                  items: { $ref: "#/components/schemas/Id" }
+                  description: The placements whose read credential is running out. Audited.
+      responses:
+        "200":
+          description: The tickets, and the placements that failed their gates.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [tickets, failed]
+                properties:
+                  tickets:
+                    type: array
+                    items:
+                      type: object
+                      required: [placement_id, file_id, version_id, size, crc64, folder, names,
+                                 origin, protect, acl, read, expires_at]
+                      properties:
+                        placement_id: { $ref: "#/components/schemas/Id" }
+                        file_id: { $ref: "#/components/schemas/Id" }
+                        version_id: { $ref: "#/components/schemas/Id" }
+                        path: { type: string, description: The file's path below the annex root. }
+                        size: { type: integer, format: int64 }
+                        crc64: { type: string, pattern: "^[0-9a-f]{16}$" }
+                        mtime_ns: { oneOf: [{ $ref: "#/components/schemas/Nanos" }, { type: "null" }] }
+                        folder: { type: string, description: The target folder, relative to the export. }
+                        name: { type: string, description: The file's own name at the target. }
+                        names:
+                          type: array
+                          items: { type: string }
+                          description: >-
+                            The names it may take, in order, each without replacing anything. An
+                            older version at its origin takes the file's own name only with a
+                            replace, or when the name is free and the rule says overwrite.
+                        uid:
+                          oneOf: [{ type: integer, format: int64 }, { type: "null" }]
+                          description: >-
+                            The NAS's own numeric owner, as the copy saw it. Only when the target
+                            is on the file's own filer; on another, null, and the edge maps the SID.
+                        gid:
+                          oneOf: [{ type: integer, format: int64 }, { type: "null" }]
+                          description: The NAS's own numeric group, as with uid.
+                        origin: { type: boolean }
+                        same_content: { type: boolean }
+                        replace:
+                          description: >-
+                            A3.4 (decisions 82 to 85): the file at the name may be replaced, if it is
+                            still exactly this, the annex's current verified copy. Only at the file's
+                            own name in its original folder, with overwrite_keep_version. The edge
+                            checks it itself (forced statx, one link, over SMB no stream and its CRC)
+                            before it hides it, and asks replace_go first.
+                          oneOf:
+                            - type: "null"
+                            - type: object
+                              required: [version_id, nas_file_id, size, mtime_ns, ctime_ns, crc64,
+                                         hidden_name]
+                              properties:
+                                version_id: { $ref: "#/components/schemas/Id" }
+                                nas_file_id: { type: string }
+                                size: { type: integer, format: int64 }
+                                mtime_ns: { $ref: "#/components/schemas/Nanos" }
+                                ctime_ns: { $ref: "#/components/schemas/Nanos" }
+                                crc64: { type: string, pattern: "^[0-9a-f]{16}$" }
+                                hidden_name:
+                                  type: string
+                                  description: "`.omnifile-replacing-<placement>-<name>`"
+                        protect:
+                          type: boolean
+                          description: Make inherited entries explicit and protect the DACL.
+                        acl:
+                          type: object
+                          additionalProperties: true
+                          description: >-
+                            The captured descriptor to set: ntfs_sd or nfs4 (raw, base64) or posix
+                            (mode), with owner_sid and group_sid.
+                        read: { type: object, additionalProperties: true, description: A read credential. }
+                        expires_at: { type: string, format: date-time }
+                  failed:
+                    type: array
+                    items:
+                      type: object
+                      required: [placement_id, reason]
+                      properties:
+                        placement_id: { $ref: "#/components/schemas/Id" }
+                        reason:
+                          type: string
+                          x-extensible-enum: [access_denied, target_not_allowed, file_present,
+                                              not_restorable, acl_unsupported]
+        default: { $ref: "#/components/responses/Problem" }
+
+  /v0/edges/{edge_id}/annex-placements/{placement_id}:
+    post:
+      tags: [annex]
+      operationId: annexPlacementStep
+      summary: >-
+        Ask before the link that puts a placed file under its name (go: every gate again,
+        with the folder's ACL as the edge reads it now and the staged ACL's read set as it
+        will be with the file's own owner and group), and report each step after it.
+      parameters:
+        - $ref: "#/components/parameters/EdgeId"
+        - name: placement_id
+          in: path
+          required: true
+          schema: { $ref: "#/components/schemas/Id" }
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [step]
+              properties:
+                step:
+                  type: string
+                  enum: [go, filled, read_back, linked, owned, done, failed, stuck, leftover,
+                         replace_go, replace_delete_go, replace_hidden, replace_put_back,
+                         replace_aside, replaced, replace_gone]
+                  description: >-
+                    A3.4's questions: replace_go before the old file is hidden, and
+                    replace_delete_go (phase place, after the grace and before the new file's
+                    link; phase delete, before the delete, with `name`, the new file's final
+                    name: any but the file's own is refused). Its reports, facts recorded
+                    also after the placement ended, each only in its order (a replay is a
+                    no-op; one out of order answers reason not_in_order and changes nothing):
+                    replace_hidden (hidden_name; after a replace_go yes), replace_put_back (back
+                    under its own name), replace_aside (kept under a -replaced- name, with a
+                    Problem), replace_gone (the old file went by a user's hand; nothing
+                    deleted) and replaced (deleted; after a delete-phase yes).
+                phase: { type: string, enum: [place, delete], description: replace_delete_go only. }
+                hidden_name: { type: string, maxLength: 512, description: replace_hidden only. }
+                acl: { type: object, additionalProperties: true, description: go only. }
+                folder_acl: { type: object, additionalProperties: true, description: go only. }
+                name:
+                  type: [string, "null"]
+                  maxLength: 255
+                  description: >-
+                    At `done`, one that can't be a file's name still lands, with a note, and
+                    claims nothing. So does an `outcome` this service doesn't know. At
+                    `replace_delete_go` phase delete, the new file's final name.
+                uid:
+                  type: integer
+                  minimum: 0
+                  description: "`go`: the numeric owner the file will have, as the NAS has it."
+                gid:
+                  type: integer
+                  minimum: 0
+                  description: "`go`: the staged file's real numeric group."
+                posix_acls_shown:
+                  type: boolean
+                  description: >-
+                    `go`, on POSIX: this server shows POSIX ACLs on the staged file, so "no ACL"
+                    means none. Without it a staged ACL can't be proved the capture of its version.
+                at:
+                  type: string
+                  description: "`stuck`: the step it is stuck at. An abandon says what it left."
+                crc64:
+                  type: string
+                  pattern: "^[0-9a-f]{16}$"
+                  description: The read-back's. Required at go, and must be the version's.
+                ino: { type: integer, format: int64 }
+                method: { type: string, x-extensible-enum: [link, placeholder] }
+                owner_restored: { type: boolean }
+                pointer_deleted: { type: boolean }
+                outcome:
+                  type: string
+                  x-extensible-enum: [placed, restored_name, already_there, replaced,
+                                      replaced_old_kept]
+                attrs:
+                  type: [object, "null"]
+                  additionalProperties: true
+                  description: >-
+                    The placed file as the edge journalled it at P5; null if the file there
+                    isn't the copy (a user changed or replaced it).
+                reason: { type: string, maxLength: 200 }
+                detail: { type: string, maxLength: 500 }
+      responses:
+        "200":
+          description: Whether to go on.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [placement_id, proceed]
+                properties:
+                  placement_id: { $ref: "#/components/schemas/Id" }
+                  state: { type: string }
+                  proceed: { type: boolean }
+                  reason: { type: [string, "null"] }
+                  hold:
+                    type: boolean
+                    description: >-
+                      The replace questions: wait and ask again (paused, the grace, an in-Azure
+                      read under way). Any other refusal is definite: the old file is put back.
+        default: { $ref: "#/components/responses/Problem" }
+
+  /internal/v1/teams/intents:
+    post:
+      tags: [teams]
+      operationId: consumeTeamsIntent
+      summary: The Teams relay forwards a card button click as a signed intent (single use).
+      description: |
+        Not an edge call. The caller is the relay only (client certificate with SAN
+        urn:omnifile:relay); edge certificates get `403 caller_not_allowed`. The relay
+        has validated the Bot Framework JWT; the service re-verifies the Ed25519 intent,
+        checks the tenant, that the clicker is the card's recipient, consumes the intent
+        once (catalog.teams_intent), checks the clicker can still read the file, and acts
+        in the same transaction. Never 401: the relay would treat it as transient.
+        `Idempotency-Key` is the intent_id, and the stored reply is keyed on the `intent`
+        field only. See docs/contracts/teams.md section 4 and control-api.md section 13.
+      security:
+        - relayCertificate: []
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TeamsIntentForward" }
+      responses:
+        "200":
+          description: Done (keep_online, track) or queued (recall), with the card to show.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeamsIntentReply" }
+        "400":
+          description: "`invalid_request` (schema, or a time more than 10 minutes off), or `intent_mismatch` (intent_id or action differ from the intent)."
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "403":
+          description: "`intent_invalid` (signature, kid, typ, iss, aud, tenant, unknown or revoked intent), `not_intended_recipient`, `forbidden` (the clicker can no longer read the file), or `caller_not_allowed` (not a pinned relay certificate, or none)."
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "409":
+          description: "`intent_already_used`: a replayed click."
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "410":
+          description: "`intent_expired`."
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "422":
+          description: "`action_not_allowed` (Track on a finished recall, or Recall when the file is online)."
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "429":
+          description: "`throttled`: more than 10 clicks per minute for one recipient."
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /internal/v0/sign:
+    post:
+      tags: [enrolment]
+      operationId: signEdgeCertificate
+      summary: "INTERNAL: api asks enrol, the only CA signer, to sign a renewal or Roles Anywhere CSR, or api's own server certificate."
+      description: |
+        Internal only. Served by the `enrol` app, reachable only from `api`
+        (network rules), and accepted only with an Entra token issued to
+        api's managed identity. Never exposed to edges: the ingress must not
+        route this path from edge networks, and enrol also refuses callers
+        whose address (the TCP peer, or X-Forwarded-For from the trusted
+        ingress only) is outside OMNIFILE_ENROL_SIGN_SOURCES (api's subnet).
+      x-internal: true
+      servers:
+        - url: https://omnifile-enrol.internal
+      security:
+        - apiManagedIdentity: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - title: An edge's certificate
+                  type: object
+                  additionalProperties: false
+                  required: [edge_id, csr_pem, purpose, current_cert_sha256, request_id]
+                  properties:
+                    edge_id: { $ref: "#/components/schemas/Id" }
+                    csr_pem: { type: string }
+                    purpose:
+                      type: string
+                      enum: [renewal, roles_anywhere]
+                      description: >-
+                        renewal: a new mTLS certificate (the edge's fingerprints move).
+                        roles_anywhere: the edge's IAM Roles Anywhere certificate (decision 50);
+                        the mTLS fingerprints are untouched and the response adds renew_after.
+                    current_cert_sha256: { $ref: "#/components/schemas/Sha256" }
+                    request_id:
+                      type: string
+                      minLength: 16
+                      maxLength: 128
+                      description: The edge's Idempotency-Key; a repeat returns the same certificate.
+                - title: api's own server certificate
+                  description: >-
+                    Threat model T5: with TCP ingress api terminates mutual TLS itself, with a
+                    serverAuth certificate from the edge CA for enrol's configured names
+                    (OMNIFILE_ENROL_API_SERVER_NAMES, never the CSR's). Names no edge. An enrol
+                    with no names configured answers 403 caller_not_allowed.
+                  type: object
+                  additionalProperties: false
+                  required: [csr_pem, purpose, request_id]
+                  properties:
+                    csr_pem: { type: string, description: An ECDSA P-256 CSR; its subject and SANs are ignored. }
+                    purpose: { type: string, const: api_server }
+                    request_id:
+                      type: string
+                      minLength: 16
+                      maxLength: 128
+                      description: A repeat returns the same certificate.
+      responses:
+        "201":
+          description: >-
+            Signed. For renewal the catalog now holds the new fingerprint and the old one as
+            previous; api_server touches no edge.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [cert_pem, chain_pem, ca_pem, not_after]
+                properties:
+                  cert_pem: { type: string }
+                  chain_pem: { type: string }
+                  ca_pem: { type: string }
+                  not_after: { type: string, format: date-time }
+                  renew_after:
+                    type: string
+                    format: date-time
+                    description: roles_anywhere and api_server only (day 20 of 30).
+        "403":
+          description: Caller is not api's managed identity, or the edge is not active.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+
+  /internal/v0/crl:
+    post:
+      tags: [enrolment]
+      operationId: signEdgeCaCrl
+      summary: "INTERNAL: the worker gets the edge CA's CRL, signed by enrol, for Roles Anywhere."
+      description: |
+        Internal only (decision 50). Served by `enrol`, accepted only with an
+        Entra token issued to the worker's managed identity
+        (OMNIFILE_ENROL_CRL_CALLER_OID) and from OMNIFILE_ENROL_SIGN_SOURCES.
+        The CRL is built from the catalog, never from the request: every
+        unexpired Roles Anywhere and mTLS certificate of a revoked edge. Once
+        an edge has been revoked it is never empty: when none of those is
+        unexpired, it lists one serial, the last certificate of the edge
+        revoked most recently (Roles Anywhere refuses a CRL that revokes
+        nothing). It is numbered by its build time (microseconds) and valid
+        for 30 days.
+        The worker uploads it to each configured trust anchor
+        (rolesanywhere:ImportCrl, then UpdateCrl). Audited.
+      x-internal: true
+      servers:
+        - url: https://omnifile-enrol.internal
+      security:
+        - workerManagedIdentity: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false }
+      responses:
+        "200":
+          description: The signed CRL.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [crl_pem, crl_number, this_update, next_update, revoked, through]
+                properties:
+                  crl_pem: { type: string, description: "PEM (X509 CRL), as ImportCrl takes it." }
+                  crl_number: { type: string, pattern: "^[0-9]+$" }
+                  this_update: { type: string, format: date-time }
+                  next_update: { type: string, format: date-time }
+                  revoked: { type: integer, minimum: 0 }
+                  through:
+                    type: [string, "null"]
+                    format: date-time
+                    description: The latest revocation it holds.
+        "403":
+          description: Caller is not the worker's managed identity.
+          content:
+            application/problem+json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        default: { $ref: "#/components/responses/Problem" }
+
+components:
+  securitySchemes:
+    apiManagedIdentity:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Entra access token for the `api` app's managed identity, audience = enrol's app ID.
+    workerManagedIdentity:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Entra access token for the `worker` app's managed identity, audience = enrol's app ID.
+    relayCertificate:
+      type: mutualTLS
+      description: Client certificate from the OmniFile CA with SAN urn:omnifile:relay.
+    edgeCertificate:
+      type: mutualTLS
+      description: |
+        Client certificate issued by the OmniFile CA (30 days). Container Apps
+        ingress requires it and forwards it in X-Forwarded-Client-Cert; the
+        service verifies the chain and maps its SHA-256 to an active edge.
+
+  parameters:
+    EdgeId:
+      name: edge_id
+      in: path
+      required: true
+      schema: { $ref: "#/components/schemas/Id" }
+    FileId:
+      name: file_id
+      in: path
+      required: true
+      schema: { $ref: "#/components/schemas/Id" }
+    UploadId:
+      name: upload_id
+      in: path
+      required: true
+      schema: { $ref: "#/components/schemas/Id" }
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: 16-128 characters, UUIDv7 recommended. Stored 24 h per edge.
+      schema: { type: string, minLength: 16, maxLength: 128 }
+    EdgeVersion:
+      name: OmniFile-Edge-Version
+      in: header
+      required: false
+      schema: { type: string }
+
+  responses:
+    Problem:
+      description: RFC 9457 problem details.
+      content:
+        application/problem+json:
+          schema: { $ref: "#/components/schemas/Problem" }
+
+  schemas:
+    Id:
+      type: string
+      pattern: "^[0-9]{1,19}$"
+      description: 64-bit integer as a decimal string.
+    LeaseId:
+      type: string
+      pattern: "^[0-9]{1,9}\\.[0-9a-f]{32}$"
+      description: Opaque stub lease (expiry and a 128-bit MAC). The edge sends it back unchanged.
+    RenewalProof:
+      type: object
+      required: [signed_at, signature]
+      description: |
+        Proof of possession of the current certificate's private key. `signature` is
+        base64 of a DER ECDSA P-256 / SHA-256 signature, by that key, over the UTF-8 bytes
+        "omnifile-renewal-v1" LF <edge_id decimal> LF <signed_at, exactly as sent> LF
+        <lowercase hex SHA-256 of the CSR's DER>. `signed_at` must be within 5 minutes
+        of the service's clock.
+      properties:
+        signed_at: { type: string, format: date-time }
+        signature: { type: string, maxLength: 1024 }
+    Cursor:
+      type: string
+      pattern: "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$"
+      description: >-
+        Opaque feed position. Start with "0.0". After a restore of the catalog it has a
+        third part (the feed's incarnation), and a cursor from before the restore gets
+        reset_required.
+    Nanos:
+      type: string
+      pattern: "^-?[0-9]{1,20}$"
+      description: Nanoseconds since the Unix epoch, as a decimal string.
+    Sid:
+      type: string
+      pattern: "^S-1-[0-9]+(-[0-9]+){1,15}$"
+    EdgeAnnex:
+      type: object
+      required: [annex_id, name, mode, state, path, dataset_id, filer, settings, ruleset,
+                 entity_version]
+      properties:
+        annex_id: { $ref: "#/components/schemas/Id" }
+        name: { type: string }
+        mode: { type: string, x-extensible-enum: [copy] }
+        state: { type: string, x-extensible-enum: [registered, baseline, active, paused] }
+        path: { type: string, description: "Under the filer's export; '' = all of it." }
+        dataset_id: { $ref: "#/components/schemas/Id" }
+        filer:
+          type: object
+          required: [filer_id, vendor, host, protocol, export, event_source, credential_mode]
+          properties:
+            filer_id: { $ref: "#/components/schemas/Id" }
+            vendor: { type: string, x-extensible-enum: [generic, ontap, powerscale] }
+            host: { type: string }
+            protocol: { type: string, x-extensible-enum: [smb, nfs3, nfs4] }
+            export: { type: string }
+            event_source: { type: string, x-extensible-enum: [scan, smb_notify] }
+            credential_mode:
+              type: string
+              x-extensible-enum: [machine_account, service_keytab, sec_sys]
+        settings:
+          type: object
+          required: [quiet_minutes, quick_scan_minutes, full_scan_minutes, reconcile_days]
+          properties:
+            quiet_minutes: { type: integer }
+            quick_scan_minutes: { type: integer }
+            full_scan_minutes: { type: integer }
+            reconcile_days: { type: integer }
+        ruleset:
+          oneOf:
+            - type: "null"
+            - type: object
+              required: [version, body]
+              properties:
+                version: { type: integer }
+                body: { type: object }
+        baseline_at: { type: [string, "null"], format: date-time }
+        entity_version: { $ref: "#/components/schemas/Id" }
+        served_at:
+          type: string
+          format: date-time
+          description: >-
+            The service's clock when it answered. The edge makes no age-based removal
+            while its own clock is more than 10 minutes from it.
+        reconcile_asked_at:
+          type: [string, "null"]
+          format: date-time
+          description: >-
+            A reconciliation asked for now, after a copy Azure's read-back refused. The
+            edge runs one when it sees a value it hasn't answered.
+    AnnexRemoval:
+      type: object
+      description: A removal ticket (phase A2.2). `expect` is what the file must still be.
+      required: [removal_id, file_id, version_id, path, state, expires_at, expect]
+      properties:
+        removal_id: { $ref: "#/components/schemas/Id" }
+        file_id: { $ref: "#/components/schemas/Id" }
+        version_id: { $ref: "#/components/schemas/Id" }
+        path: { type: string }
+        state:
+          type: string
+          x-extensible-enum: [ticketed, hidden, deleting, deleted, done, cancelled, stuck]
+        expires_at: { type: string, format: date-time }
+        ruleset_version: { type: [integer, "null"] }
+        expect:
+          type: object
+          required: [nas_file_id, size, mtime_ns]
+          properties:
+            nas_file_id: { type: string }
+            size: { type: integer, format: int64 }
+            mtime_ns: { $ref: "#/components/schemas/Nanos" }
+            ctime_ns: { oneOf: [{ $ref: "#/components/schemas/Nanos" }, { type: "null" }] }
+            crc64:
+              type: [string, "null"]
+              description: >-
+                The verified copy's CRC-64/NVME (hex), which the edge reads the file
+                again for before the delete where a client can set the ChangeTime (SMB).
+    AnnexEvent:
+      type: object
+      description: |
+        One annex event (control-api.md section 4.8). `kind` is open: mount, placement_account,
+        scan, baseline, arrived, changed, copied, left, renamed, drift, skipped, copy_failed,
+        would_remove.
+        `path` is under the annex's root (`.` for the annex as a whole, `skipped` only).
+      required: [kind]
+      properties:
+        kind: { type: string, pattern: "^[a-z][a-z_]{0,39}$" }
+        path: { type: string, maxLength: 4096 }
+        old_path: { type: string, maxLength: 4096 }
+        observed_at: { type: string, format: date-time }
+        rule: { type: string, maxLength: 64, description: "arrived, changed, would_remove: the rule that decided." }
+        tags:
+          type: array
+          items:
+            type: object
+            required: [key, value]
+            properties: { key: { type: string }, value: { type: string } }
+        nas_file_id: { type: string, maxLength: 128 }
+        size: { type: integer, format: int64, minimum: 0 }
+        mtime_ns: { $ref: "#/components/schemas/Nanos" }
+        ctime_ns: { $ref: "#/components/schemas/Nanos" }
+        btime_ns: { $ref: "#/components/schemas/Nanos" }
+        change_id: { type: string }
+        uid: { type: integer, minimum: 0 }
+        gid: { type: integer, minimum: 0 }
+        mode: { type: integer, minimum: 0, maximum: 4095 }
+        baseline: { type: boolean, description: "Present in the first scan: not an arrival." }
+        file_id: { $ref: "#/components/schemas/Id" }
+        version_id: { $ref: "#/components/schemas/Id" }
+        reason: { type: string, maxLength: 64 }
+        detail: { type: string, maxLength: 1000 }
+        details: { type: object }
+        acl:
+          type: object
+          description: |
+            The file's ACL as the NAS holds it. `ntfs_sd`: `raw` is the self-relative NT
+            security descriptor (base64), parsed by the service. `nfs4`: `raw` is the
+            NFSv4 ACL's XDR, and `aces` the edge's mapping of its principals to SIDs, in
+            order. `posix`: mode, owner and group SIDs, and POSIX ACL entries if any.
+          required: [kind]
+          properties:
+            kind: { type: string, enum: [ntfs_sd, nfs4, posix] }
+            raw: { type: string, contentEncoding: base64 }
+            owner_sid: { $ref: "#/components/schemas/Sid" }
+            group_sid: { $ref: "#/components/schemas/Sid" }
+            mode: { type: integer, minimum: 0, maximum: 4095 }
+            aces:
+              type: array
+              maxItems: 1000
+              items:
+                type: object
+                required: [type, mask]
+                properties:
+                  type: { type: string, enum: [allow, deny] }
+                  sid: { oneOf: [{ $ref: "#/components/schemas/Sid" }, { type: "null" }] }
+                  mask: { type: integer, minimum: 0 }
+                  flags: { type: integer, minimum: 0 }
+            entries:
+              type: array
+              maxItems: 1000
+              items: { type: object }
+    Blake3:
+      type: string
+      pattern: "^[0-9a-f]{64}$"
+    Crc64:
+      type: string
+      pattern: "^[0-9a-f]{16}$"
+      description: CRC-64/NVME, big-endian, hex.
+    Sha256:
+      type: string
+      pattern: "^[0-9a-f]{64}$"
+    LogicalTier:
+      type: string
+      enum: [hot, warm, cold, archive, smart]
+    RecallState:
+      type: string
+      enum: [requested, rehydrating, copying, downloading, available, failed, cancelled, superseded]
+      description: |
+        `copying` is the Storage Mover step for S3-resident files (decision 20).
+        `superseded`: the file was replaced or deleted while it was being
+        recalled; an edge stops its fill and reports nothing.
+        Mapping to base.RestoreState and the FSAL states: docs/design/fsal-socket.md 5.5.
+
+    Problem:
+      type: object
+      required: [type, title, status, code, retryable]
+      properties:
+        type: { type: string, description: "urn:omnifile:error:<code>" }
+        title: { type: string }
+        status: { type: integer }
+        code:
+          type: string
+          description: See docs/contracts/control-api.md section 9.
+          enum:
+            - invalid_request
+            - certificate_required
+            - certificate_invalid
+            - enrolment_token_invalid
+            - caller_not_allowed
+            - edge_mismatch
+            - edge_revoked
+            - not_found
+            - version_conflict
+            - directory_not_empty
+            - worm_violation
+            - stub_not_allowed
+            - request_in_progress
+            - beyond_rewind_depth
+            - cursor_expired
+            - idempotency_key_reused
+            - acl_unknown
+            - name_invalid
+            - dependency_failed
+            - edge_upgrade_required
+            - throttled
+            - unavailable
+            - policy_not_approved
+            - layout_conflict
+            - actor_required
+            - explicit_tier_set
+            - intent_expired
+            - not_intended_recipient
+            - intent_already_used
+            - intent_mismatch
+            - intent_invalid
+            - forbidden
+            - action_not_allowed
+            - aws_key_mismatch
+            - internal
+        detail: { type: string }
+        retryable: { type: boolean }
+        retry_after_s: { type: [integer, "null"] }
+        request_id: { type: string }
+
+    EdgeFacts:
+      type: object
+      required: [hostname, version]
+      properties:
+        hostname: { type: string }
+        os: { type: string }
+        kernel: { type: string }
+        version: { type: string }
+
+    IssuedCertificate:
+      type: object
+      required: [edge_id, cert_pem, chain_pem, ca_pem, not_after]
+      properties:
+        edge_id: { $ref: "#/components/schemas/Id" }
+        cert_pem: { type: string }
+        chain_pem:
+          type: string
+          description: Intermediates between cert_pem and ca_pem, PEM; "" when the CA signs directly.
+        ca_pem: { type: string, description: The OmniFile CA (trust anchor). }
+        not_after: { type: string, format: date-time }
+        api_url: { type: string, format: uri }
+        api_server_ca_sha256:
+          allOf: [{ $ref: "#/components/schemas/Sha256" }]
+          description: >-
+            Enrolment only, and only when api's server certificate is the edge CA's (TCP
+            ingress, threat model T5): the SHA-256 of the CA (DER) the edge pins for api. It
+            must be ca_pem's (or the CA the bundle pinned); absent, the edge pins the bundle's
+            CA for api too.
+
+    RolesAnywhereCertificate:
+      type: object
+      required: [edge_id, cert_pem, chain_pem, ca_pem, not_after, renew_after]
+      properties:
+        edge_id: { $ref: "#/components/schemas/Id" }
+        cert_pem:
+          type: string
+          description: >-
+            Subject OU=omnifile-roles-anywhere, CN=omnifile-edge-<edge_id>; for the CSR's key.
+        chain_pem:
+          type: string
+          description: Intermediates between cert_pem and ca_pem, PEM; "" when the CA signs directly.
+        ca_pem: { type: string, description: The edge CA, the client's Roles Anywhere trust anchor. }
+        not_after: { type: string, format: date-time }
+        renew_after:
+          type: string
+          format: date-time
+          description: Day 20 of 30. The edge renews with its mTLS certificate, or from this time.
+
+    Credential:
+      oneOf:
+        - type: object
+          required: [mode, url, expires_at, cache_until]
+          properties:
+            mode: { const: azure_user_delegation_sas }
+            url: { type: string, format: uri, description: Private-endpoint host when the backend is private. }
+            expires_at: { type: string, format: date-time }
+            cache_until:
+              type: string
+              format: date-time
+              description: Reuse until this time (expiry minus 5 minutes). A read SAS lasts 60 minutes, a write SAS 15 minutes.
+        - type: object
+          description: >-
+            The default for S3 (no secret): a pointer the edge signs with SigV4, using
+            temporary credentials from its own IAM Roles Anywhere session (aws_signing_helper
+            serving IMDSv2 on loopback, key in the TPM). Read only: edges never write to S3.
+          required: [mode, bucket, key, region, endpoint]
+          properties:
+            mode: { const: s3_roles_anywhere }
+            bucket: { type: string }
+            key: { type: string }
+            version_id:
+              type: [string, "null"]
+              description: The object version to read; omitted for an unversioned object.
+            etag:
+              type: string
+              description: >-
+                The location's ETag, in double quotes as S3 gives it. The edge sends it as
+                If-Match when there is no version_id; a 412 means the source changed. The
+                edge refuses to read an object that has neither.
+            crc64nvme:
+              allOf: [{ $ref: "#/components/schemas/Crc64" }]
+              description: >-
+                The object's full CRC-64/NVME, as for s3_presigned_url: the catalog's, or
+                learned by HEAD with checksum mode. The edge verifies the whole file
+                against it before the file becomes RESIDENT.
+            region: { type: string }
+            endpoint:
+              type: string
+              description: >-
+                The S3 interface endpoint host (no scheme or path), from the operator's
+                settings; a *.vpce.amazonaws.com host when private_network.
+            addressing:
+              type: string
+              enum: [virtual_host, path]
+              description: virtual_host puts the bucket in front of the endpoint host.
+            tls_max_version:
+              type: [string, "null"]
+              description: '"1.2" pins TLS 1.2 (interface endpoints reject TLS 1.3); null allows 1.2 and 1.3.'
+            requester_pays:
+              type: boolean
+              description: Every request sends x-amz-request-payer requester.
+            private_network:
+              type: boolean
+              description: The edge reads only through the interface endpoint, never a public host.
+        - type: object
+          required: [mode, url, expires_at, cache_until]
+          properties:
+            mode: { const: s3_presigned_url }
+            url:
+              type: string
+              format: uri
+              description: >-
+                The operator's fallback (edge_credentials = presigned): a presigned GetObject
+                for one object version, signed for the edge's S3 interface endpoint (TLS 1.2).
+                Read only: edges never write to S3.
+            expires_at: { type: string, format: date-time }
+            cache_until:
+              type: string
+              format: date-time
+              description: Reuse until this time (expiry minus 5 minutes). Lasts 60 minutes.
+            crc64nvme:
+              allOf: [{ $ref: "#/components/schemas/Crc64" }]
+              description: >-
+                The object's full CRC-64/NVME, as S3 stores it, when the service knows it
+                (the catalog's, or learned from S3 by HEAD with checksum mode). The edge
+                verifies the whole fill against it when its replica has no CRC for the
+                file; without one it refuses to fill.
+            if_match:
+              type: string
+              description: >-
+                The catalog's ETag of the object, double-quoted, signed into the URL as a
+                header (if-match in X-Amz-SignedHeaders). Signed header: send it as If-Match
+                on every GET of this URL; 412 = source changed (the object was replaced:
+                narrow, report remote.source_changed, fail closed). Absent when the catalog
+                knows no ETag; then a URL without a versionId pins nothing, and the edge
+                reads it only by whole-file, CRC-verified fills, never chunk by chunk.
+
+    FileRef:
+      oneOf:
+        - type: object
+          required: [file_id]
+          properties:
+            file_id: { $ref: "#/components/schemas/Id" }
+        - type: object
+          required: [local]
+          properties:
+            local:
+              type: object
+              required: [fsid, ino, ino_gen]
+              properties:
+                fsid: { type: string }
+                ino: { type: string }
+                ino_gen: { type: string }
+
+    Attrs:
+      type: object
+      properties:
+        size: { type: integer, format: int64, minimum: 0 }
+        mtime_ns: { $ref: "#/components/schemas/Nanos" }
+        uid: { type: integer, format: int64, minimum: 0 }
+        gid: { type: integer, format: int64, minimum: 0 }
+        mode: { type: integer, minimum: 0, maximum: 4095 }
+        owner_sid: { $ref: "#/components/schemas/Sid" }
+        acl_sha256: { $ref: "#/components/schemas/Sha256" }
+
+    ChangeOp:
+      type: object
+      required: [op_id, op]
+      properties:
+        op_id: { type: string, maxLength: 128 }
+        op: { type: string, enum: [create, setattr, rename, unlink, acl] }
+        file: { $ref: "#/components/schemas/FileRef" }
+        parent: { $ref: "#/components/schemas/FileRef" }
+        name: { type: string }
+        kind: { type: string, enum: [file, dir, symlink] }
+        symlink_target: { type: string }
+        attrs: { $ref: "#/components/schemas/Attrs" }
+        new_parent: { $ref: "#/components/schemas/FileRef" }
+        new_name: { type: string }
+        replace: { type: boolean, default: false }
+        acl_sha256: { $ref: "#/components/schemas/Sha256" }
+        expected_entity_version: { $ref: "#/components/schemas/Id" }
+        actor: { $ref: "#/components/schemas/Actor" }
+
+    Actor:
+      type: object
+      required: [via]
+      description: "Who made the change on the edge (control-api.md section 4.1), shaped like a recall's requester. Optional and additive: ops without it record nothing. The versions the op writes record it (file_version.actor_*, migration 0030); proof is derived by the service as for recall requesters, and the edge's value can only lower it. via = unknown (the edge's reconcile pass found the change after the fact, or it could not resolve the session) carries no identity: any other field is ignored."
+      properties:
+        via: { type: string, enum: [nfs, smb, local, unknown] }
+        uid: { type: integer, format: int64, minimum: 0, maximum: 4294967294 }
+        sid: { $ref: "#/components/schemas/Sid" }
+        sec: { type: string, enum: [sys, krb5, krb5i, krb5p, ntlm, kerberos] }
+        proof: { type: string, enum: [claimed, proven] }
+        client_addr: { type: string, maxLength: 64 }
+
+    ChangeResult:
+      type: object
+      required: [op_id, status]
+      properties:
+        op_id: { type: string }
+        status: { type: string, enum: [applied, duplicate, conflict, rejected] }
+        file_id: { $ref: "#/components/schemas/Id" }
+        version_id: { $ref: "#/components/schemas/Id" }
+        entity_version: { $ref: "#/components/schemas/Id" }
+        code: { type: string, description: Error code when conflict or rejected. }
+        detail: { type: string }
+
+    Location:
+      type: object
+      required: [backend_kind, container, object_key, logical_tier, archived, restore_state]
+      properties:
+        backend_id: { $ref: "#/components/schemas/Id" }
+        backend_kind: { type: string, enum: [azure_blob, s3] }
+        container: { type: string, description: Azure "account/container" or S3 bucket. }
+        object_key: { type: string, description: Never derived from the current path. }
+        backend_version_id: { type: [string, "null"] }
+        logical_tier: { $ref: "#/components/schemas/LogicalTier" }
+        storage_class: { type: string }
+        archived: { type: boolean }
+        restore_state: { type: string, enum: [not_needed, archived, in_progress, completed, expired, failed] }
+        restore_expires_at: { type: [string, "null"], format: date-time }
+
+    FileRow:
+      type: object
+      required: [file_id, dataset_id, name, kind, entity_version]
+      properties:
+        file_id: { $ref: "#/components/schemas/Id" }
+        dataset_id: { $ref: "#/components/schemas/Id" }
+        parent_id:
+          oneOf:
+            - { $ref: "#/components/schemas/Id" }
+            - { type: "null" }
+        name: { type: string }
+        kind: { type: string, enum: [file, dir, symlink] }
+        symlink_target: { type: [string, "null"] }
+        size: { type: integer, format: int64 }
+        mtime_ns: { $ref: "#/components/schemas/Nanos" }
+        uid: { type: integer, format: int64 }
+        gid: { type: integer, format: int64 }
+        mode: { type: integer }
+        owner_sid: { $ref: "#/components/schemas/Sid" }
+        acl_id: { $ref: "#/components/schemas/Id" }
+        state: { type: string, enum: [landing, uploading, resident, stub, recalling, remote] }
+        resident_bytes: { type: integer, format: int64 }
+        version_id:
+          $ref: "#/components/schemas/Id"
+          description: The content version (the bytes). Renames and attribute changes keep it.
+        crc64nvme: { $ref: "#/components/schemas/Crc64" }
+        location:
+          oneOf:
+            - { $ref: "#/components/schemas/Location" }
+            - { type: "null" }
+        stub:
+          oneOf:
+            - type: object
+              required: [version_id, resident_bytes]
+              properties:
+                version_id: { $ref: "#/components/schemas/Id" }
+                resident_bytes: { type: integer, format: int64 }
+            - { type: "null" }
+        deleted: { type: boolean }
+        entity_version: { $ref: "#/components/schemas/Id" }
+
+    AclEntry:
+      type: object
+      required: [scope, tag, perms]
+      properties:
+        scope: { type: string, enum: [access, default] }
+        tag: { type: string, enum: [owner, owning_group, user, group, mask, other] }
+        sid: { $ref: "#/components/schemas/Sid" }
+        perms: { type: string, pattern: "^[r-][w-][x-]$" }
+
+    AclBody:
+      type: object
+      required: [sha256, mode, entries]
+      properties:
+        sha256: { $ref: "#/components/schemas/Sha256" }
+        owner_sid: { $ref: "#/components/schemas/Sid" }
+        group_sid: { $ref: "#/components/schemas/Sid" }
+        mode: { type: integer, minimum: 0, maximum: 4095 }
+        entries: { type: array, items: { $ref: "#/components/schemas/AclEntry" } }
+
+    AclRow:
+      allOf:
+        - $ref: "#/components/schemas/AclBody"
+        - type: object
+          required: [acl_id, dataset_id]
+          properties:
+            acl_id: { $ref: "#/components/schemas/Id" }
+            dataset_id: { $ref: "#/components/schemas/Id" }
+
+    ShareRow:
+      type: object
+      required: [share_id, dataset_id, name, protocols, trust_level, owners_group_sid, on_open, rewind, worm, entity_version]
+      properties:
+        share_id: { $ref: "#/components/schemas/Id" }
+        dataset_id: { $ref: "#/components/schemas/Id" }
+        name: { type: string }
+        root_dir_id:
+          oneOf:
+            - { $ref: "#/components/schemas/Id" }
+            - { type: "null" }
+        protocols: { type: array, items: { type: string, enum: [nfs3, nfs4, smb] } }
+        nfs_sec: { type: array, items: { type: string, enum: [sys, krb5, krb5i, krb5p] } }
+        nfs_clients: { type: array, items: { type: string } }
+        root_squash: { type: boolean }
+        trust_level: { type: string, enum: [proven, host_trusted] }
+        host_trust_override: { type: boolean, description: "An admin accepted a host-trusted share with restricted folders (access-control.md §3). M6." }
+        nfs_export_id: { type: integer, minimum: 2, maximum: 65535, description: "Ganesha's Export_Id for this share: fixed for the share's life, unique on its edge. M6." }
+        smb_encrypt: { type: boolean, description: "SMB3 encryption required. M6." }
+        owners_group_sid: { $ref: "#/components/schemas/Sid" }
+        writers_group_sid: { $ref: "#/components/schemas/Sid" }
+        readers_group_sid: { $ref: "#/components/schemas/Sid" }
+        on_open: { type: string, enum: [wait, fail, auto] }
+        wait_threshold_minutes: { type: [integer, "null"] }
+        quiet_s: { type: [integer, "null"], minimum: 10, maximum: 600, description: "The share's quiet period in seconds; null or absent: the edge's default for the share (`[commit] worm_quiet_s` on a WORM share, `[commit] quiet_s` on any other). Decision 67." }
+        rewind:
+          type: object
+          required: [depth_days, max_days, labels]
+          properties:
+            depth_days: { type: integer }
+            max_days: { type: integer }
+            labels: { type: object, description: "e.g. {\"daily_at_utc\": \"00:00\", \"hourly_for_hours\": 24}" }
+        worm:
+          type: object
+          required: [enabled]
+          properties:
+            enabled: { type: boolean }
+            mode: { type: [string, "null"], enum: [unlocked_test, locked, null] }
+            retention_days: { type: [integer, "null"] }
+            locked_at: { type: [string, "null"], format: date-time }
+            lock_deadline: { type: [string, "null"], format: date-time }
+        entity_version: { $ref: "#/components/schemas/Id" }
+
+    DatasetRow:
+      type: object
+      required: [dataset_id, name, backend, storage_layout, migration_state, entity_version]
+      properties:
+        dataset_id: { $ref: "#/components/schemas/Id" }
+        name: { type: string }
+        backend:
+          type: object
+          required: [kind, private_network]
+          properties:
+            kind: { type: string, enum: [azure_blob, s3] }
+            private_network: { type: boolean }
+        storage_layout: { type: string, enum: [two_account, single_account] }
+        migration_state: { type: string, enum: [steady, migrating, cut_over] }
+        entity_version: { $ref: "#/components/schemas/Id" }
+
+    RecallRow:
+      type: object
+      required: [recall_id, file_id, version_id, state, entity_version]
+      properties:
+        recall_id: { $ref: "#/components/schemas/Id" }
+        file_id: { $ref: "#/components/schemas/Id" }
+        version_id: { $ref: "#/components/schemas/Id" }
+        state: { $ref: "#/components/schemas/RecallState" }
+        eta: { type: [string, "null"], format: date-time }
+        requesters:
+          type: array
+          items:
+            type: object
+            properties:
+              sid: { $ref: "#/components/schemas/Sid" }
+              via: { type: string, enum: [nfs, smb, local, portal, teams, api] }
+              proof: { type: string, enum: [claimed, proven] }
+        error: { type: [string, "null"] }
+        read_credential:
+          oneOf:
+            - { $ref: "#/components/schemas/Credential" }
+            - { type: "null" }
+        entity_version: { $ref: "#/components/schemas/Id" }
+
+    Event:
+      type: object
+      description: |
+        One feed event. Exactly one of file, acl, share, dataset, recall or
+        conflict is present, matching `type`. Payloads carry the entity's
+        current state; ignore an event whose entity_version is not newer than
+        the replica's. Unknown types: skip, but still advance the cursor.
+      required: [type, entity_id, entity_version]
+      properties:
+        type:
+          type: string
+          enum: [file.upsert, file.rename, file.tombstone, file.conflict, acl.upsert, share.upsert, share.delete, dataset.upsert, recall.state]
+        entity_id: { $ref: "#/components/schemas/Id" }
+        entity_version: { $ref: "#/components/schemas/Id" }
+        share_id: { $ref: "#/components/schemas/Id", description: "share.delete only: the share removed (M6)." }
+        origin:
+          oneOf:
+            - type: object
+              required: [edge_id, op_id]
+              properties:
+                edge_id: { $ref: "#/components/schemas/Id" }
+                op_id: { type: string }
+            - { type: "null" }
+        file: { $ref: "#/components/schemas/FileRow" }
+        acl: { $ref: "#/components/schemas/AclRow" }
+        share: { $ref: "#/components/schemas/ShareRow" }
+        dataset: { $ref: "#/components/schemas/DatasetRow" }
+        recall: { $ref: "#/components/schemas/RecallRow" }
+        conflict:
+          type: object
+          required: [op_id, reason]
+          properties:
+            op_id: { type: string }
+            reason: { type: string }
+            current: { $ref: "#/components/schemas/FileRow" }
+
+    SnapshotExport:
+      type: object
+      required: [export_id, state]
+      properties:
+        export_id: { $ref: "#/components/schemas/Id" }
+        state: { type: string, enum: [running, ready, failed, expired] }
+        as_of: { $ref: "#/components/schemas/Cursor" }
+        parts:
+          type: array
+          items:
+            type: object
+            required: [url, rows, bytes, sha256]
+            properties:
+              url: { type: string, format: uri, description: Read SAS, valid 24 h. }
+              rows: { type: integer, format: int64, description: NDJSON lines in the part. }
+              bytes: { type: integer, format: int64, description: Size of the compressed part. }
+              sha256: { $ref: "#/components/schemas/Sha256" }
+
+    TeamsIntentForward:
+      type: object
+      additionalProperties: false
+      description: The body the Teams relay sends; the relay's tests validate against this schema.
+      required: [intent, intent_id, action, clicker_aad_object_id, tenant_id, activity_time, received_at]
+      properties:
+        intent: { type: string, description: Compact JWS exactly as carried by the card. }
+        intent_id: { type: string, format: uuid, description: Must equal the JWS claim. }
+        action:
+          type: string
+          enum: [recall, keep_online, track]
+          description: Must equal the JWS claim.
+        clicker_aad_object_id: { type: string, format: uuid }
+        tenant_id: { type: string, format: uuid }
+        activity_time: { type: string, format: date-time, description: From the Teams activity. }
+        received_at: { type: string, format: date-time, description: When the relay received it. }
+
+    TeamsIntentReply:
+      type: object
+      required: [result]
+      description: |
+        The relay reads only `card` and `message` (relay sink.parse_reply). `card` is an
+        Adaptive Card 1.4 with no Action.Execute buttons (api holds no signing key); the
+        worker sends the full card about 6 seconds later.
+      properties:
+        result: { type: string, enum: [queued, done] }
+        recall_id: { $ref: "#/components/schemas/Id" }
+        card:
+          type: object
+          required: [type, version, body]
+          properties:
+            type: { type: string, enum: [AdaptiveCard] }
+            version: { type: string }
+            body: { type: array }
+            actions:
+              type: array
+              items:
+                type: object
+                properties:
+                  type: { type: string, enum: [Action.OpenUrl] }
+        message: { type: string, maxLength: 1000, description: Unused in v1. }
+
+    Requester:
+      type: object
+      required: [via]
+      properties:
+        uid: { type: integer, format: int64 }
+        sid: { $ref: "#/components/schemas/Sid" }
+        via: { type: string, enum: [nfs, smb, local], description: "local: a process on the edge itself (an admin shell, a backup agent) read a stub directly; the smb-guard caught it." }
+        sec: { type: string, enum: [sys, krb5, krb5i, krb5p, ntlm, kerberos] }
+        proof: { type: string, enum: [claimed, proven], description: "Advisory: the service derives proof from via, sec and the shares' trust level, and the edge's value can only lower it (control-api.md section 4.4)." }
+        client_addr: { type: string }
+
+    AuditRecord:
+      type: object
+      required: [at, action, decision]
+      properties:
+        at: { type: string, format: date-time }
+        action: { type: string }
+        decision: { type: string, enum: [allow, deny, info] }
+        sid: { $ref: "#/components/schemas/Sid" }
+        uid: { type: integer, format: int64 }
+        proof: { type: string, enum: [claimed, proven] }
+        trust_level: { type: string, enum: [proven, host_trusted] }
+        file_id: { $ref: "#/components/schemas/Id" }
+        client_addr: { type: string }
+        details: { type: object }

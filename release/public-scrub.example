@@ -1,0 +1,15 @@
+# What release/public_snapshot.py removes from the public snapshot. Copy this file to
+# release/public-scrub.local (git-ignored) and fill it in; the real file is never committed
+# or published, since it lists exactly what must not be. Fields are separated by TABs.
+#
+#   replace<TAB>old<TAB>new     every occurrence of old, in every text file
+#   drop-line<TAB>text          every line that contains text
+#   drop-path<TAB>glob          every file whose path matches glob (from the repo root)
+#
+# Every `old` and `text` is checked again after the scrub: the snapshot is refused, and nothing
+# is pushed, if one is still anywhere in it.
+
+# replace	123456789012	111122223333
+# replace	my-test-iam-user	omnifile-harness-user
+# drop-line	https://private.example/notes/
+# drop-path	docs/private/*

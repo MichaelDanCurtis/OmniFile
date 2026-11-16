@@ -1,0 +1,61 @@
+# OmniFile edge filer: NFS-Ganesha global configuration (decision 28,
+# docs/design/access-control.md). Rendered by the daemon at setup:
+#   @NFS_DOMAIN@   NFSv4 id-mapping domain (the AD DNS domain, lowercase)
+#   @KEYTAB@       keytab holding nfs/<fqdn> (default /etc/krb5.keytab)
+#   @FSAL_SOCKET@  daemon socket (default /run/omnifile/fsal.sock)
+# Exports are NOT written here: one EXPORT block per share is rendered by
+# omnifile_acl::ShareConfig::render_ganesha into /var/lib/omnifile/shares/ganesha.conf,
+# which /etc/ganesha/omnifile-exports.conf includes (docs/design/share-provisioning.md).
+#
+# Requirements on the Ganesha build (fsal/build/Containerfile):
+# - ENABLE_VFS_POSIX_ACL=ON. FSAL_VFS does not switch to the caller's
+#   credentials, so Ganesha's own access check is the only one on NFS; without
+#   POSIX ACL mapping it checks mode bits only and ignores the share's AD-group
+#   ACL entries.
+# - USE_GSS=ON and USE_NFSIDMAP (krb5 principals -> uids through
+#   /etc/idmapd.conf, method nsswitch -> winbind).
+
+NFS_CORE_PARAM {
+    Protocols = 3, 4;
+    # How long Ganesha caches a user's group list (Manage_Gids). Together with
+    # winbind's cache this bounds how long a removal from an AD group takes to
+    # revoke NFS access. Ganesha's default is 1800 s; 300 s matches winbind.
+    Manage_Gids_Expiration = 300;
+}
+
+MDCACHE {
+    # Close NFSv3 fds at once: cached fds hold the write lease the stub handshake checks, so v3-written files would never stub.
+    Close_Fast = true;
+}
+
+NFS_KRB5 {
+    PrincipalName = nfs;
+    KeytabPath = @KEYTAB@;
+    Active_krb5 = true;
+}
+
+NFSV4 {
+    # Owners/groups as name@domain, mapped through libnfsidmap (nsswitch ->
+    # winbind), so NFSv4 clients joined to AD see the same names.
+    Allow_Numeric_Owners = true;
+    Only_Numeric_Owners = false;
+}
+
+OMNI {
+    Socket_Path = "@FSAL_SOCKET@";
+}
+
+# Safe defaults for every export; each EXPORT block repeats what matters.
+EXPORT_DEFAULTS {
+    Access_Type = None;
+    Squash = Root_Squash;
+    SecType = krb5, krb5i, krb5p;
+    Manage_Gids = true;
+    Transports = TCP;
+}
+
+LOG {
+    Default_Log_Level = EVENT;
+}
+
+%include "/etc/ganesha/omnifile-exports.conf"

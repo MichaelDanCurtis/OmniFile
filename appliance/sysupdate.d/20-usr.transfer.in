@@ -1,0 +1,16 @@
+# systemd-sysupdate: a new version's /usr, into the inactive usr slot.
+[Transfer]
+ProtectVersion=%A
+
+[Source]
+Type=url-file
+Path=@FEED_URL@
+MatchPattern=omnifile-edge_@v.usr-%a.@u.raw.zst
+
+[Target]
+Type=partition
+Path=auto
+MatchPattern=omnifile-edge_@v
+MatchPartitionType=usr
+PartitionFlags=0
+ReadOnly=1

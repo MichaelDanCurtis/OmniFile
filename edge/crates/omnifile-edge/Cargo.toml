@@ -1,0 +1,69 @@
+[package]
+name = "omnifile-edge"
+description = "OmniFile Gateway edge daemon: landing zone, upload, stubs, cache, recall fill"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "omnifile-edge"
+path = "src/main.rs"
+
+# One annex (docs/design/annex.md): `omnifile-annex@<id>.service`, and the
+# supervisor that starts those units (`omnifile-annex.service`).
+[[bin]]
+name = "omnifile-annex"
+path = "src/annex_main.rs"
+
+[dependencies]
+omnifile-blob = { path = "../omnifile-blob" }
+# The SSD cache of ONLINE placeholders: chunk-range reads (M5). BUSL-1.1 (ours).
+omnifile-cache = { path = "../omnifile-cache" }
+omnifile-control = { path = "../omnifile-control" }
+omnifile-detect = { path = "../omnifile-detect" }
+omnifile-fsal-proto = { path = "../omnifile-fsal-proto" }
+omnifile-integrity = { path = "../omnifile-integrity" }
+omnifile-marker = { path = "../omnifile-marker" }
+omnifile-replica = { path = "../omnifile-replica" }
+omnifile-stub = { path = "../omnifile-stub" }
+# The fail-closed fanotify guard for SMB and local reads of stubs (M2). BUSL-1.1 (ours).
+omnifile-smbguard = { path = "../omnifile-smbguard" }
+# Who asked: NFS uid / SMB session -> AD SID through winbind (M2). BUSL-1.1 (ours).
+omnifile-identity = { path = "../omnifile-identity" }
+# POSIX ACLs: catalog ACLs onto placeholders, normalisation (M2). BUSL-1.1 (ours).
+omnifile-acl = { path = "../omnifile-acl" }
+# Syscalls for startup checks (statfs, capabilities). MIT OR Apache-2.0.
+libc = "0.2"
+# Config file. MIT OR Apache-2.0.
+serde = { version = "1", features = ["derive"] }
+toml = "0.9"
+# Raw feed events and test fixtures. MIT OR Apache-2.0.
+serde_json = "1"
+# Error types. MIT OR Apache-2.0.
+thiserror = "2"
+# Runtime, signals, timers. MIT.
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "sync", "time", "fs", "net"] }
+# Bulk snapshot exports (control API §6): zstd-compressed parts, checked by
+# SHA-256 before use. ruzstd: pure Rust, decoding only here. MIT.
+ruzstd = "0.9"
+# SHA-256 of an export part (as omnifile-control uses it). Apache-2.0 AND ISC.
+ring = "0.17"
+# Range buffers handed to the cache (M5). MIT.
+bytes = "1"
+# annex.db, the annex unit's listing (as the replica uses it). MIT; SQLite:
+# public domain.
+rusqlite = { version = "0.40", features = ["bundled"] }
+# The NAS's raw ACL in annex events. MIT OR Apache-2.0.
+base64 = "0.22"
+# Structured logging; JSON output for the appliance journal. MIT.
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json", "fmt"] }
+
+[dev-dependencies]
+tempfile = "3"
+# Random offsets for the G1 chunk-read test. MIT OR Apache-2.0.
+fastrand = "2"

@@ -1,0 +1,145 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "DenyOmnifileTagsAddedToExistingResources",
+      "Effect": "Deny",
+      "Action": [
+        "ssm:AddTagsToResource",
+        "tag:TagResources",
+        "iam:TagInstanceProfile",
+        "iam:TagPolicy",
+        "iam:TagUser"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "ForAnyValue:StringLike": {
+          "aws:TagKeys": "omnifile-*"
+        }
+      }
+    },
+    {
+      "Sid": "DenyOmnifileTagsOnQueuesThatArentTheRuns",
+      "Effect": "Deny",
+      "Action": "sqs:TagQueue",
+      "NotResource": "arn:aws:sqs:us-west-2:111122223333:ofreal-rr-*",
+      "Condition": {
+        "ForAnyValue:StringLike": {
+          "aws:TagKeys": "omnifile-*"
+        }
+      }
+    },
+    {
+      "Sid": "DenyOmnifileTagsOnRulesThatArentTheRuns",
+      "Effect": "Deny",
+      "Action": "events:TagResource",
+      "NotResource": "arn:aws:events:us-west-2:111122223333:rule/ofreal-rr-*",
+      "Condition": {
+        "ForAnyValue:StringLike": {
+          "aws:TagKeys": "omnifile-*"
+        }
+      }
+    },
+    {
+      "Sid": "DenyOmnifileTagsOnRolesThatArentTheRuns",
+      "Effect": "Deny",
+      "Action": "iam:TagRole",
+      "NotResource": "arn:aws:iam::111122223333:role/omnifile-real/*",
+      "Condition": {
+        "ForAnyValue:StringLike": {
+          "aws:TagKeys": "omnifile-*"
+        }
+      }
+    },
+    {
+      "Sid": "DenyRemovingOmnifileTags",
+      "Effect": "Deny",
+      "Action": [
+        "ec2:DeleteTags",
+        "rolesanywhere:UntagResource",
+        "sqs:UntagQueue",
+        "events:UntagResource",
+        "iam:UntagRole",
+        "iam:UntagInstanceProfile",
+        "ssm:RemoveTagsFromResource",
+        "tag:UntagResources"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "ForAnyValue:StringLike": {
+          "aws:TagKeys": "omnifile-*"
+        }
+      }
+    },
+    {
+      "Sid": "SsmRunShellScriptOnTheRunsProbeOnly",
+      "Effect": "Allow",
+      "Action": "ssm:SendCommand",
+      "Resource": "arn:aws:ec2:us-west-2:111122223333:instance/*",
+      "Condition": {
+        "StringEquals": {
+          "ssm:resourceTag/omnifile-harness": "tests-real"
+        },
+        "StringLike": {
+          "ssm:resourceTag/omnifile-run": "rr-*"
+        }
+      }
+    },
+    {
+      "Sid": "SsmRunShellScriptDocument",
+      "Effect": "Allow",
+      "Action": "ssm:SendCommand",
+      "Resource": "arn:aws:ssm:us-west-2::document/AWS-RunShellScript"
+    },
+    {
+      "Sid": "SsmCommandResults",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetCommandInvocation",
+        "ssm:ListCommandInvocations",
+        "ssm:DescribeInstanceInformation"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SsmPublicAmiParameter",
+      "Effect": "Allow",
+      "Action": "ssm:GetParameter",
+      "Resource": "arn:aws:ssm:us-west-2::parameter/aws/service/ami-amazon-linux-latest/*"
+    },
+    {
+      "Sid": "TaggingProof",
+      "Effect": "Allow",
+      "Action": "tag:GetResources",
+      "Resource": "*"
+    },
+    {
+      "Sid": "KmsThroughS3ForTheRunsBucketsOnly",
+      "Effect": "Allow",
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "kms:ViaService": "s3.us-west-2.amazonaws.com"
+        },
+        "StringLike": {
+          "kms:EncryptionContext:aws:s3:arn": "arn:aws:s3:::ofreal-rr-*"
+        }
+      }
+    },
+    {
+      "Sid": "KmsDescribeThroughS3",
+      "Effect": "Allow",
+      "Action": "kms:DescribeKey",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "kms:ViaService": "s3.us-west-2.amazonaws.com"
+        }
+      }
+    }
+  ]
+}

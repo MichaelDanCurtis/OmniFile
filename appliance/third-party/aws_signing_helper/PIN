@@ -1,0 +1,21 @@
+# AWS IAM Roles Anywhere credential helper (aws_signing_helper), Apache-2.0
+# (LICENSE and NOTICE beside this file, from the v1.8.5 tag of
+# github.com/aws/rolesanywhere-credential-helper). appliance/build.sh fetches the URL for
+# the image's architecture (or takes --signing-helper FILE, for an offline build), refuses
+# it unless its SHA-256 is the one pinned here, and stages it at
+# /usr/libexec/omnifile/aws_signing_helper.
+# The checksums are AWS's own, from the download table in the Roles Anywhere user
+# guide ("Get temporary security credentials from IAM Roles Anywhere"): x86-64 read
+# 2026-10-21, Aarch64 read 2026-11-03, each matched by the downloaded file. To bump: take
+# the new version's URLs and checksums from that table, check the downloads match, and
+# update LICENSES.md.
+HELPER_VERSION=1.8.5
+HELPER_URL_x86_64=https://rolesanywhere.amazonaws.com/releases/$HELPER_VERSION/X86_64/Linux/Amzn2023/aws_signing_helper
+HELPER_SHA256_x86_64=beec9ed1c492d93db809890f16713e3556353294b823c2184ad4e891f1b2b54d
+# The arm64 test build's (build.sh --arch arm64).
+HELPER_URL_arm64=https://rolesanywhere.amazonaws.com/releases/$HELPER_VERSION/Aarch64/Linux/Amzn2023/aws_signing_helper
+HELPER_SHA256_arm64=3d131aa888cd56da446f9c6bb460b1f0569f6c7edc74eae6193a2fe3928883ba
+# The product's (x86-64), for anything that doesn't name an architecture, spelled out (tests read it
+# literally: edge/crates/omnifile-edge/tests/units.rs).
+HELPER_URL=https://rolesanywhere.amazonaws.com/releases/$HELPER_VERSION/X86_64/Linux/Amzn2023/aws_signing_helper
+HELPER_SHA256=beec9ed1c492d93db809890f16713e3556353294b823c2184ad4e891f1b2b54d

@@ -1,0 +1,14 @@
+# Test image for omnifile-setup's domain join (tests/ad/run.sh): Ubuntu 26.04,
+# the appliance's OS, with a Samba AD DC for the domain side and winbind,
+# sudo and sshd for the member side. systemd is PID 1 on the member.
+ARG BASE=ubuntu:26.04
+FROM ${BASE}
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update -qq \
+ && apt-get install -y -qq --no-install-recommends \
+      samba samba-ad-dc samba-ad-provision samba-dsdb-modules samba-vfs-modules \
+      winbind libnss-winbind libpam-winbind krb5-user smbclient ldb-tools \
+      systemd systemd-sysv dbus sudo openssh-server iproute2 dnsutils procps acl \
+ && rm -rf /var/lib/apt/lists/* \
+ && systemctl mask systemd-resolved.service systemd-networkd.service \
+      smbd.service nmbd.service samba-ad-dc.service 2>/dev/null || true

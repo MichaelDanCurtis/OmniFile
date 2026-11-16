@@ -1,0 +1,33 @@
+az account show -o json
+az account set --subscription 00000000-0000-4000-8000-0000000000a1
+az account show -o json
+az account show -o json
+az account show -o json
+az account show -o json
+az ad app create --display-name ofreal-rr-dry-0001-partner-probe --sign-in-audience AzureADMyOrg -o json
+az rest --method patch --url https://graph.microsoft.com/v1.0/applications/0000f00d-0000-0000-0000-000000000001 --body {"tags": ["omnifile-run:rr-dry-0001", "omnifile-harness:tests-real"]} -o json
+az ad app credential reset --id 0000f00d-0000-0000-0000-000000000001 --cert @$OUT/pki/partner-probe.pem --append -o json
+az ad sp create --id 0000f00d-0000-0000-0000-000000000002 -o json
+az account show -o json
+az account show -o json
+ssh omnitest@192.0.2.10 sudo /srv/ofreal/vm/exit.sh tenant-stub-read  # exit step tenant-stub-read
+az monitor log-analytics query -w  --analytics-query ContainerAppConsoleLogs_CL | where ContainerAppName_s endswith '-worker' and Log_s has 'botconnector' and Log_s has 'sent' | take 5 -o json
+node tests/real/portal/driver.mjs exit-policy-cost  # params sha256:<h>
+az account show -o json
+az account show -o json
+az rest --method get --url https://graph.microsoft.com/v1.0/users/geo-writer%40ofreal.test?$select=id,onPremisesSecurityIdentifier -o json
+az rest --method get --url https://graph.microsoft.com/v1.0/users?$filter=onPremisesSecurityIdentifier eq 'S-1-5-21-1004336348-1177238915-682003330-1105'&$select=id -o json
+az rest --method get --url https://graph.microsoft.com/v1.0/users/geo-writer%40ofreal.test/transitiveMemberOf/microsoft.graph.group?$select=id,displayName,onPremisesSecurityIdentifier,onPremisesSyncEnabled -o json
+az rest --method get --url https://graph.microsoft.com/v1.0/servicePrincipals?$filter=appId eq '00000003-0000-0000-c000-000000000000'&$select=id,appRoles -o json
+az rest --method get --url https://graph.microsoft.com/v1.0/servicePrincipals/11111111-2222-3333-4444-555555555555/appRoleAssignments -o json
+ssh omnitest@192.0.2.10 /srv/ofreal/venv/bin/python /srv/ofreal/vm/azure_checks.py RT-25  # stdin 1 lines
+az rest --method get --url https://graph.microsoft.com/v1.0/users/geo-writer%40ofreal.test/memberOf/microsoft.graph.group?$select=id -o json
+az rest --method get --url https://graph.microsoft.com/v1.0/groups/g-readers/transitiveMembers/microsoft.graph.user?$select=id,onPremisesSecurityIdentifier -o json
+az account show -o json
+az account show -o json
+az ad app list --filter tags/any(t:t eq 'omnifile-run:rr-dry-0001') -o json
+az ad app list --filter startswith(displayName,'ofreal-rr-dry-0001-partner-probe') -o json
+az ad app delete --id 0000f00d-0000-0000-0000-000000000001
+az ad app list --filter tags/any(t:t eq 'omnifile-run:rr-dry-0001') -o json
+az ad app list --filter startswith(displayName,'ofreal-rr-dry-0001-partner-probe') -o json
+az ad app show --id 0000f00d-0000-0000-0000-000000000001 -o json

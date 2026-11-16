@@ -1,0 +1,26 @@
+# Setup on the console (docs/design/setup-wizard.md): until the filer is set
+# up, tty1 shows the setup questions instead of a login prompt (there is no
+# account to log in with yet). A stopped or failed setup asks again; once it
+# is done, the login prompt comes back.
+[Unit]
+Description=OmniFile: setup on the console
+ConditionPathExists=!/var/lib/omnifile/setup/done
+ConditionCredential=!omnifile.setup
+After=systemd-user-sessions.service systemd-networkd.service systemd-resolved.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/omnifile-setup
+ExecStopPost=-/bin/systemctl --no-block start getty@tty1.service
+Restart=on-failure
+RestartSec=2
+StandardInput=tty
+StandardOutput=tty
+StandardError=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,1664 @@
+{
+  "manifest_version": 1,
+  "config": {
+    "name": "omnifile-edge",
+    "distribution": "ubuntu",
+    "architecture": "arm64",
+    "output_format": "disk",
+    "version": "0.1.0",
+    "release": "resolute"
+  },
+  "packages": [
+    {
+      "type": "deb",
+      "name": "acl",
+      "version": "2.3.2-2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "adduser",
+      "version": "3.153ubuntu1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "attr",
+      "version": "1:2.5.2-4ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "base-files",
+      "version": "14ubuntu6.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "base-passwd",
+      "version": "3.6.8",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "bash",
+      "version": "5.3-2ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "ca-certificates",
+      "version": "20260816ubuntu0.26.04.1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "cifs-utils",
+      "version": "2:7.4-1ubuntu0.26.04.4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "coreutils",
+      "version": "9.5-1ubuntu2+0.0.0~ubuntu25",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "coreutils-from-uutils",
+      "version": "0.0.0~ubuntu25",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "dash",
+      "version": "0.5.12-12ubuntu3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "dbus",
+      "version": "1.16.2-2ubuntu4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "dbus-bin",
+      "version": "1.16.2-2ubuntu4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "dbus-daemon",
+      "version": "1.16.2-2ubuntu4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "dbus-session-bus-common",
+      "version": "1.16.2-2ubuntu4",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "dbus-system-bus-common",
+      "version": "1.16.2-2ubuntu4",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "debconf",
+      "version": "1.5.92",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "debianutils",
+      "version": "5.23.2build1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "diffutils",
+      "version": "1:3.12-1ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "dpkg",
+      "version": "1.23.7ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "e2fsprogs",
+      "version": "1.47.2-3ubuntu4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "efibootmgr",
+      "version": "18-4ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "findutils",
+      "version": "4.10.0-3build2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "gcc-16-base",
+      "version": "16-20260322-1ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "gnu-coreutils",
+      "version": "9.7-3ubuntu2.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "gpg",
+      "version": "2.4.8-4ubuntu3.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "gpgconf",
+      "version": "2.4.8-4ubuntu3.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "grep",
+      "version": "3.12-1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "gzip",
+      "version": "1.14-1~exp2ubuntu1.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "hostname",
+      "version": "3.25build1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "init-system-helpers",
+      "version": "1.69",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "iproute2",
+      "version": "6.19.0-1ubuntu1.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "keyutils",
+      "version": "1.6.3-6ubuntu3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "kmod",
+      "version": "34.2-2ubuntu2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "krb5-user",
+      "version": "1.22.1-2ubuntu4.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libacl1",
+      "version": "2.3.2-2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libapparmor1",
+      "version": "5.0.2-0ubuntu1~26.04.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libarchive13t64",
+      "version": "3.8.5-1ubuntu2.3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libassuan9",
+      "version": "3.0.2-2build1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libatomic1",
+      "version": "16-20260322-1ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libattr1",
+      "version": "1:2.5.2-4ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libaudit-common",
+      "version": "1:4.1.2-1ubuntu0.1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "libaudit1",
+      "version": "1:4.1.2-1ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libavahi-client3",
+      "version": "0.8-18ubuntu1.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libavahi-common-data",
+      "version": "0.8-18ubuntu1.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libavahi-common3",
+      "version": "0.8-18ubuntu1.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libblkid1",
+      "version": "2.41.3-3ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libboost-iostreams1.90.0",
+      "version": "1.90.0-6ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libboost-locale1.90.0",
+      "version": "1.90.0-6ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libboost-thread1.90.0",
+      "version": "1.90.0-6ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libbpf1",
+      "version": "1:1.6.3-1ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libbrotli1",
+      "version": "1.2.0-3build1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libbsd0",
+      "version": "0.12.2-2build2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libbz2-1.0",
+      "version": "1.0.8-6ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libc-bin",
+      "version": "2.43-2ubuntu2.4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libc-gconv-modules-extra",
+      "version": "2.43-2ubuntu2.4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libc6",
+      "version": "2.43-2ubuntu2.4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libcap-ng0",
+      "version": "0.8.5-4build5",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libcap2",
+      "version": "1:2.75-10ubuntu2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libcap2-bin",
+      "version": "1:2.75-10ubuntu2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libcbor0.10",
+      "version": "0.10.2-2ubuntu3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libcephfs2",
+      "version": "20.2.0-0ubuntu2.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libcom-err2",
+      "version": "1.47.2-3ubuntu4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libcrypt1",
+      "version": "1:4.5.1-1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libcups2t64",
+      "version": "2.4.16-1ubuntu1.3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libcurl3t64-gnutls",
+      "version": "8.18.0-1ubuntu2.8",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libcurl4t64",
+      "version": "8.18.0-1ubuntu2.8",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libdb5.3t64",
+      "version": "5.3.28+dfsg2-10ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libdbus-1-3",
+      "version": "1.16.2-2ubuntu4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libdebconfclient0",
+      "version": "0.280ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libdevmapper1.02.1",
+      "version": "2:1.02.205-2ubuntu3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libedit2",
+      "version": "3.1-20251016-1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libefiboot1t64",
+      "version": "39-2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libefivar1t64",
+      "version": "39-2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libelf1t64",
+      "version": "0.194-4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libestr0",
+      "version": "0.1.11-2build1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libevent-core-2.1-7t64",
+      "version": "2.1.12-stable-10ubuntu0.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libexpat1",
+      "version": "2.7.4-1ubuntu0.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libext2fs2t64",
+      "version": "1.47.2-3ubuntu4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libfastjson4",
+      "version": "1.2304.0-2build1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libfdisk1",
+      "version": "2.41.3-3ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libffi8",
+      "version": "3.5.2-4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libfido2-1",
+      "version": "1.16.0-2build1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libgcc-s1",
+      "version": "16-20260322-1ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libgcrypt20",
+      "version": "1.12.0-2ubuntu1.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libglib2.0-0t64",
+      "version": "2.88.0-1ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libgmp10",
+      "version": "2:6.3.0+dfsg-5ubuntu2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libgnutls30t64",
+      "version": "3.8.12-2ubuntu1.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libgpg-error0",
+      "version": "1.58-2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libgssapi-krb5-2",
+      "version": "1.22.1-2ubuntu4.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libgssrpc4t64",
+      "version": "1.22.1-2ubuntu4.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libhogweed6t64",
+      "version": "3.10.2-1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libibverbs1",
+      "version": "61.0-2ubuntu3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libicu78",
+      "version": "78.2-2ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libidn2-0",
+      "version": "2.3.8-4build1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libinih1",
+      "version": "61-1ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libjansson4",
+      "version": "2.14-2build4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libjemalloc2",
+      "version": "5.3.0-4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libjson-c5",
+      "version": "0.18+ds-3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libk5crypto3",
+      "version": "1.22.1-2ubuntu4.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libkadm5clnt-mit12",
+      "version": "1.22.1-2ubuntu4.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libkadm5srv-mit12",
+      "version": "1.22.1-2ubuntu4.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libkdb5-10t64",
+      "version": "1.22.1-2ubuntu4.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libkeyutils1",
+      "version": "1.6.3-6ubuntu3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libkmod2",
+      "version": "34.2-2ubuntu2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libkrb5-3",
+      "version": "1.22.1-2ubuntu4.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libkrb5support0",
+      "version": "1.22.1-2ubuntu4.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libksba8",
+      "version": "1.6.7-2build1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libldap-common",
+      "version": "2.6.10+dfsg-1ubuntu5",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "libldap2",
+      "version": "2.6.10+dfsg-1ubuntu5",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libldb2",
+      "version": "2:2.11.0+samba4.23.6+dfsg-1ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "liblmdb0",
+      "version": "0.9.31-1build2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "liblz4-1",
+      "version": "1.10.0-8",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "liblzma5",
+      "version": "5.8.3-1ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libmd0",
+      "version": "1.1.0-2build4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libmnl0",
+      "version": "1.0.5-3build1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libmount1",
+      "version": "2.41.3-3ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libncurses6",
+      "version": "6.6+20251231-1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libncursesw6",
+      "version": "6.6+20251231-1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libnettle8t64",
+      "version": "3.10.2-1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libnfsidmap1",
+      "version": "1:2.8.5-1ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libnftables1",
+      "version": "1.1.6-1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libnftnl11",
+      "version": "1.3.1-1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libnghttp2-14",
+      "version": "1.68.0-2ubuntu0.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libnl-3-200",
+      "version": "3.12.0-2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libnl-route-3-200",
+      "version": "3.12.0-2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libnpth0t64",
+      "version": "1.8-3build1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libnss-winbind",
+      "version": "2:4.23.6+dfsg-1ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libp11-kit0",
+      "version": "0.26.2-2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libpam-modules",
+      "version": "1.7.0-5ubuntu3.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libpam-modules-bin",
+      "version": "1.7.0-5ubuntu3.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libpam-runtime",
+      "version": "1.7.0-5ubuntu3.2",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "libpam-winbind",
+      "version": "2:4.23.6+dfsg-1ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libpam0g",
+      "version": "1.7.0-5ubuntu3.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libpcre2-8-0",
+      "version": "10.46-1build1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libpopt0",
+      "version": "1.19+dfsg-2build1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libproc2-0",
+      "version": "2:4.0.4-9ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libpsl5t64",
+      "version": "0.21.2-1.1build2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libpython3-stdlib",
+      "version": "3.14.3-0ubuntu2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libpython3.14-minimal",
+      "version": "3.14.4-1ubuntu0.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libpython3.14-stdlib",
+      "version": "3.14.4-1ubuntu0.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "librados2",
+      "version": "20.2.0-0ubuntu2.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "librdmacm1t64",
+      "version": "61.0-2ubuntu3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libreadline8t64",
+      "version": "8.3-4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "librtmp1",
+      "version": "2.4+20151223.gitfa8646d.1-3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libsasl2-2",
+      "version": "2.1.28+dfsg1-9ubuntu3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libsasl2-modules-db",
+      "version": "2.1.28+dfsg1-9ubuntu3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libselinux1",
+      "version": "3.9-4build1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libsemanage-common",
+      "version": "3.9-1build1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "libsemanage2",
+      "version": "3.9-1build1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libsepol2",
+      "version": "3.9-2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libsmartcols1",
+      "version": "2.41.3-3ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libsmbclient0",
+      "version": "2:4.23.6+dfsg-1ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libsqlite3-0",
+      "version": "3.46.1-9ubuntu0.3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libss2",
+      "version": "1.47.2-3ubuntu4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libssh2-1t64",
+      "version": "1.11.1-1ubuntu0.26.04.4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libssl3t64",
+      "version": "3.5.5-1ubuntu3.7",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libstdc++6",
+      "version": "16-20260322-1ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libsystemd-shared",
+      "version": "259.9-0ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libsystemd0",
+      "version": "259.9-0ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libtalloc2",
+      "version": "2:2.4.3+samba4.23.6+dfsg-1ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libtasn1-6",
+      "version": "4.21.0-2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libtdb1",
+      "version": "2:1.4.14+samba4.23.6+dfsg-1ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libtevent0t64",
+      "version": "2:0.17.1+samba4.23.6+dfsg-1ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libtext-charwidth-perl",
+      "version": "0.04-11build4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libtext-wrapi18n-perl",
+      "version": "0.06-10",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "libtinfo6",
+      "version": "6.6+20251231-1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libtirpc-common",
+      "version": "1.3.7-0.1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "libtirpc3t64",
+      "version": "1.3.7-0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libtss2-esys-3.0.2-0t64",
+      "version": "4.1.3-6",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libtss2-fapi1t64",
+      "version": "4.1.3-6",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libtss2-mu-4.0.1-0t64",
+      "version": "4.1.3-6",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libtss2-rc0t64",
+      "version": "4.1.3-6",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libtss2-sys1t64",
+      "version": "4.1.3-6",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libtss2-tcti-cmd0t64",
+      "version": "4.1.3-6",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libtss2-tcti-device0t64",
+      "version": "4.1.3-6",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libtss2-tcti-libtpms0t64",
+      "version": "4.1.3-6",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libtss2-tcti-mssim0t64",
+      "version": "4.1.3-6",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libtss2-tcti-spi-helper0t64",
+      "version": "4.1.3-6",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libtss2-tcti-swtpm0t64",
+      "version": "4.1.3-6",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libtss2-tctildr0t64",
+      "version": "4.1.3-6",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libudev1",
+      "version": "259.9-0ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libunistring5",
+      "version": "1.3-2build1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "liburcu8t64",
+      "version": "0.15.6-1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "liburing2",
+      "version": "2.14-1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libuuid1",
+      "version": "2.41.3-3ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libwbclient0",
+      "version": "2:4.23.6+dfsg-1ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libwrap0",
+      "version": "7.6.q-36build2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libxml2-16",
+      "version": "2.15.2+dfsg-0.1ubuntu0.3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libxtables12",
+      "version": "1.8.11-2ubuntu3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libxxhash0",
+      "version": "0.8.3-2build1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "libzstd1",
+      "version": "1.5.7+dfsg-3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "linux-base",
+      "version": "4.15ubuntu5",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-firmware",
+      "version": "20260319.git217ca6e4.1ubuntu",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-firmware-amd-graphics",
+      "version": "20260319.git217ca6e4-0ubuntu3.1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-firmware-amd-misc",
+      "version": "20260319.git217ca6e4-0ubuntu1.1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-firmware-broadcom-wireless",
+      "version": "20260319.git217ca6e4-0ubuntu1.1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-firmware-intel-graphics",
+      "version": "20260319.git217ca6e4-0ubuntu2.1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-firmware-intel-misc",
+      "version": "20260319.git217ca6e4-0ubuntu1.2",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-firmware-intel-wireless",
+      "version": "20260319.git217ca6e4-0ubuntu2.1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-firmware-marvell-prestera",
+      "version": "20260319.git217ca6e4-0ubuntu1.2",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-firmware-marvell-wireless",
+      "version": "20260319.git217ca6e4-0ubuntu1.1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-firmware-mediatek",
+      "version": "20260319.git217ca6e4-0ubuntu1.2",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-firmware-mellanox-spectrum",
+      "version": "20260319.git217ca6e4-0ubuntu1.1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-firmware-misc",
+      "version": "20260319.git217ca6e4-0ubuntu2.2",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-firmware-netronome",
+      "version": "20260319.git217ca6e4-0ubuntu1.1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-firmware-nvidia-graphics",
+      "version": "20260319.git217ca6e4-0ubuntu1.1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-firmware-qlogic",
+      "version": "20260319.git217ca6e4-0ubuntu1.1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-firmware-qualcomm-graphics",
+      "version": "20260319.git217ca6e4-0ubuntu1.1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-firmware-qualcomm-misc",
+      "version": "20260319.git217ca6e4-0ubuntu2.1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-firmware-qualcomm-wireless",
+      "version": "20260319.git217ca6e4-0ubuntu1.2",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-firmware-realtek",
+      "version": "20260319.git217ca6e4-0ubuntu1.2",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "linux-image-7.0.0-38-generic",
+      "version": "7.0.0-38.38",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "linux-image-generic",
+      "version": "7.0.0-38.38",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "linux-main-modules-zfs-7.0.0-38-generic",
+      "version": "7.0.0-38.38",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "linux-modules-7.0.0-38-generic",
+      "version": "7.0.0-38.38",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "login.defs",
+      "version": "1:4.17.4-2ubuntu3",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "logsave",
+      "version": "1.47.2-3ubuntu4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "mawk",
+      "version": "1.3.4.20260129-1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "media-types",
+      "version": "14.0.0build1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "mount",
+      "version": "2.41.3-3ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "ncurses-base",
+      "version": "6.6+20251231-1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "ncurses-bin",
+      "version": "6.6+20251231-1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "netbase",
+      "version": "6.5build1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "nfs-common",
+      "version": "1:2.8.5-1ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "nftables",
+      "version": "1.1.6-1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "openssh-client",
+      "version": "1:10.2p1-2ubuntu3.8",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "openssh-server",
+      "version": "1:10.2p1-2ubuntu3.8",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "openssh-sftp-server",
+      "version": "1:10.2p1-2ubuntu3.8",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "openssl",
+      "version": "3.5.5-1ubuntu3.7",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "openssl-provider-legacy",
+      "version": "3.5.5-1ubuntu3.7",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "passwd",
+      "version": "1:4.17.4-2ubuntu3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "perl-base",
+      "version": "5.40.1-7ubuntu0.3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "procps",
+      "version": "2:4.0.4-9ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "python3",
+      "version": "3.14.3-0ubuntu2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "python3-dbus",
+      "version": "1.4.0-1build2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "python3-minimal",
+      "version": "3.14.3-0ubuntu2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "python3.14",
+      "version": "3.14.4-1ubuntu0.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "python3.14-minimal",
+      "version": "3.14.4-1ubuntu0.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "readline-common",
+      "version": "8.3-4",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "rpcbind",
+      "version": "1.2.7-1build2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "rsyslog",
+      "version": "8.2512.0-1ubuntu4.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "rust-coreutils",
+      "version": "0.10.0-1ubuntu2~26.04.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "samba",
+      "version": "2:4.23.6+dfsg-1ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "samba-common",
+      "version": "2:4.23.6+dfsg-1ubuntu2.2",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "samba-common-bin",
+      "version": "2:4.23.6+dfsg-1ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "samba-libs",
+      "version": "2:4.23.6+dfsg-1ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "samba-vfs-ceph",
+      "version": "2:4.23.6+dfsg-1ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "samba-vfs-modules",
+      "version": "2:4.23.6+dfsg-1ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "sed",
+      "version": "4.9-2ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "sensible-utils",
+      "version": "0.0.26build1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "smbclient",
+      "version": "2:4.23.6+dfsg-1ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "sudo",
+      "version": "1.9.17p2-1ubuntu3.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "sudo-common",
+      "version": "1.2ubuntu",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "systemd",
+      "version": "259.9-0ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "systemd-boot",
+      "version": "259.9-0ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "systemd-boot-efi",
+      "version": "259.9-0ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "systemd-boot-tools",
+      "version": "259.9-0ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "systemd-container",
+      "version": "259.9-0ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "systemd-repart",
+      "version": "259.9-0ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "systemd-resolved",
+      "version": "259.9-0ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "systemd-sysv",
+      "version": "259.9-0ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "systemd-timesyncd",
+      "version": "259.9-0ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "sysvinit-utils",
+      "version": "3.15-5ubuntu1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "tar",
+      "version": "1.35+dfsg-4ubuntu0.4",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "tpm-udev",
+      "version": "4.1.3-6",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "tpm2-tools",
+      "version": "5.7-1build1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "tzdata",
+      "version": "2026e-0ubuntu0.26.04.1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "ucf",
+      "version": "3.0052ubuntu1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "udev",
+      "version": "259.9-0ubuntu0.1",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "util-linux",
+      "version": "2.41.3-3ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "winbind",
+      "version": "2:4.23.6+dfsg-1ubuntu2.2",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "wireless-regdb",
+      "version": "2026.05.30-0ubuntu1~26.04.1",
+      "architecture": "all"
+    },
+    {
+      "type": "deb",
+      "name": "xfsprogs",
+      "version": "6.18.0-3",
+      "architecture": "arm64"
+    },
+    {
+      "type": "deb",
+      "name": "zlib1g",
+      "version": "1:1.3.dfsg+really1.3.1-1ubuntu3.2",
+      "architecture": "arm64"
+    }
+  ],
+  "extension": {}
+}

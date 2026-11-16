@@ -1,0 +1,44 @@
+{
+  "schema": 1,
+  "platform": "linux/amd64",
+  "images": {
+    "relay": {
+      "repository": "omnifile-relay",
+      "containerfile": "relay/Containerfile",
+      "context": "relay",
+      "digest": "sha256:176523d7b2ec088ac717ec0da641332d1f699107d3e20b0149f0e358389846f4",
+      "size_bytes": 53877739,
+      "local_tag": "omnifile-local/omnifile-relay:652176df2322",
+      "source_commit": "652176df232226a0e091b8ab991c7845d1bb2bab",
+      "built_at": "2026-11-04T05:31:04Z"
+    },
+    "service": {
+      "repository": "omnifile-service",
+      "containerfile": "service/Containerfile.api",
+      "context": "service",
+      "digest": "sha256:b264c1001ac43f553e155fc4d199fa12348e16fa7b0e97926c7e5c8da256b820",
+      "size_bytes": 166640635,
+      "local_tag": "omnifile-local/omnifile-service:652176df2322",
+      "source_commit": "652176df232226a0e091b8ab991c7845d1bb2bab",
+      "built_at": "2026-11-04T05:32:32Z"
+    },
+    "web": {
+      "repository": "omnifile-web",
+      "containerfile": "service/Containerfile.web",
+      "context": ".",
+      "digest": "sha256:36794f916b5523d5b441b14b2b94d8924bd328e4c18c894f804d2619f508f04b",
+      "size_bytes": 166808943,
+      "local_tag": "omnifile-local/omnifile-web:652176df2322",
+      "source_commit": "652176df232226a0e091b8ab991c7845d1bb2bab",
+      "built_at": "2026-11-04T05:35:47Z"
+    }
+  },
+  "apps": {
+    "api": "service",
+    "enrol": "service",
+    "worker": "service",
+    "verifier": "service",
+    "web": "web",
+    "relay": "relay"
+  }
+}

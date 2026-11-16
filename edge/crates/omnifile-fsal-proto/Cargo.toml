@@ -1,0 +1,19 @@
+[package]
+name = "omnifile-fsal-proto"
+description = "OmniFile Gateway FSAL <-> daemon SEQPACKET protocol, daemon side (docs/contracts/fsal-socket.md)"
+edition.workspace = true
+version.workspace = true
+publish.workspace = true
+license.workspace = true
+
+[dependencies]
+# Socket syscalls (SOCK_SEQPACKET, SO_PEERCRED). MIT OR Apache-2.0.
+libc = "0.2"
+# Async runtime; AsyncFd drives the SEQPACKET socket. MIT.
+tokio = { version = "1", features = ["rt", "net", "sync", "time", "macros"] }
+# Structured logging. MIT.
+tracing = "0.1"
+
+[dev-dependencies]
+proptest = "1"
+tokio = { version = "1", features = ["rt-multi-thread", "net", "sync", "time", "macros"] }
