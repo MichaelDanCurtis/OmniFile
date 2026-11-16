@@ -24,6 +24,7 @@ import argparse
 import fnmatch
 import io
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -91,12 +92,25 @@ def scrub_tree(tree: Path, rules: Rules) -> list[str]:
     """Apply the rules in place. Returns what changed, one line per file."""
     changed = []
     for p in sorted(tree.rglob("*")):
-        if not p.is_file() or p.is_symlink():
+        is_link = p.is_symlink()
+        if not is_link and not p.is_file():
             continue
         rel = p.relative_to(tree).as_posix()
+        # paths first, links included: a dropped path goes whatever it is
         if any(fnmatch.fnmatch(rel, g) for g in rules.drop_path):
             p.unlink()
             changed.append(f"dropped {rel}")
+            continue
+        if is_link:
+            # a link's target is text too, read without following it
+            target = os.readlink(p)
+            new_target = target
+            for old, rep in rules.replace:
+                new_target = new_target.replace(old, rep)
+            if new_target != target:
+                p.unlink()
+                os.symlink(new_target, p)
+                changed.append(f"scrubbed {rel} (link)")
             continue
         data = p.read_bytes()
         if not _is_text(data):
@@ -111,6 +125,11 @@ def scrub_tree(tree: Path, rules: Rules) -> list[str]:
         if new != text:
             p.write_text(new, encoding="utf-8")
             changed.append(f"scrubbed {rel}")
+    # folders the drops emptied (git keeps no empty folder, so none was there before)
+    for d in sorted((d for d in tree.rglob("*") if d.is_dir() and not d.is_symlink()),
+                    key=lambda d: len(d.parts), reverse=True):
+        if not any(d.iterdir()):
+            d.rmdir()
     return changed
 
 
@@ -119,9 +138,20 @@ def check_tree(tree: Path, rules: Rules, *, gitleaks: str | None = "gitleaks") -
     problems = []
     forbidden = rules.forbidden()
     for p in sorted(tree.rglob("*")):
-        if not p.is_file() or p.is_symlink():
-            continue
         rel = p.relative_to(tree).as_posix()
+        # every path, file, link or directory, by its name
+        if any(f in rel for f in forbidden):
+            problems.append(f"a path still holds a scrubbed string: {rel}")
+        is_dir = p.is_dir() and not p.is_symlink()
+        if not is_dir and any(fnmatch.fnmatch(rel, g) for g in rules.drop_path):
+            problems.append(f"{rel} should have been dropped")
+        if p.is_symlink():
+            # a link's target, read without following it
+            if any(f in os.readlink(p) for f in forbidden):
+                problems.append(f"{rel}'s link target still holds a scrubbed string")
+            continue
+        if not p.is_file():
+            continue
         if p.stat().st_size > MAX_FILE:
             problems.append(f"{rel} is over 50 MB")
         data = p.read_bytes()

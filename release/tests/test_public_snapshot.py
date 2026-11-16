@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import sys
 import tempfile
@@ -57,6 +58,38 @@ class Scrub(unittest.TestCase):
         with self.assertRaises(ps.Refused) as e:
             ps.check_tree(self.tree, rules, gitleaks=None)
         self.assertIn("img.png", str(e.exception))
+
+    def test_links_are_dropped_and_scrubbed_by_their_target_never_followed(self):
+        # Codex on #103: links were skipped by the scrub and the check, and published as links
+        (self.tree / "private").mkdir()
+        os.symlink("private-account-123456789012", self.tree / "kept-link")
+        os.symlink("private-account-123456789012", self.tree / "private" / "dropped-link")
+        os.symlink("AGENTS.md", self.tree / "CLAUDE.md")
+        rules = ps.load_rules("replace\t123456789012\t111122223333\ndrop-path\tprivate/*\n")
+        ps.scrub_tree(self.tree, rules)
+        self.assertEqual(os.readlink(self.tree / "kept-link"), "private-account-111122223333")
+        self.assertFalse(os.path.lexists(self.tree / "private" / "dropped-link"))
+        self.assertFalse((self.tree / "private").exists())  # the folder the drop emptied goes too
+        self.assertEqual(os.readlink(self.tree / "CLAUDE.md"), "AGENTS.md")
+        ps.check_tree(self.tree, rules, gitleaks=None)
+
+    def test_a_link_target_or_a_path_holding_a_scrubbed_string_is_refused(self):
+        rules = ps.load_rules("replace\t123456789012\t111122223333\ndrop-path\tprivate/*\n")
+        os.symlink("to-123456789012", self.tree / "link")
+        with self.assertRaises(ps.Refused) as e:
+            ps.check_tree(self.tree, rules, gitleaks=None)
+        self.assertIn("link target", str(e.exception))
+        os.unlink(self.tree / "link")
+        self.write("notes-123456789012.md", "clean\n")
+        with self.assertRaises(ps.Refused) as e:
+            ps.check_tree(self.tree, rules, gitleaks=None)
+        self.assertIn("a path still holds", str(e.exception))
+        os.unlink(self.tree / "notes-123456789012.md")
+        (self.tree / "private").mkdir()
+        os.symlink("anywhere", self.tree / "private" / "l")
+        with self.assertRaises(ps.Refused) as e:
+            ps.check_tree(self.tree, rules, gitleaks=None)
+        self.assertIn("should have been dropped", str(e.exception))
 
     def test_a_clean_tree_passes_and_a_big_file_is_refused(self):
         self.write("ok.txt", "nothing to see\n")
