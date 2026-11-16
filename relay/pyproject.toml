@@ -3,7 +3,7 @@ name = "omnifile-relay"
 version = "0.1.0"
 description = "OmniFile Gateway Teams relay: the only public endpoint. Validates Bot Framework Action.Execute clicks and forwards signed intents inward."
 requires-python = ">=3.12"
-license = "BUSL-1.1"
+license = "Apache-2.0"
 dependencies = [
     "starlette>=0.47",
     "uvicorn>=0.35",

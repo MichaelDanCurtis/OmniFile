@@ -21,7 +21,7 @@ path = "src/annex_main.rs"
 
 [dependencies]
 omnifile-blob = { path = "../omnifile-blob" }
-# The SSD cache of ONLINE placeholders: chunk-range reads (M5). BUSL-1.1 (ours).
+# The SSD cache of ONLINE placeholders: chunk-range reads (M5). Apache-2.0 (ours).
 omnifile-cache = { path = "../omnifile-cache" }
 omnifile-control = { path = "../omnifile-control" }
 omnifile-detect = { path = "../omnifile-detect" }
@@ -30,11 +30,11 @@ omnifile-integrity = { path = "../omnifile-integrity" }
 omnifile-marker = { path = "../omnifile-marker" }
 omnifile-replica = { path = "../omnifile-replica" }
 omnifile-stub = { path = "../omnifile-stub" }
-# The fail-closed fanotify guard for SMB and local reads of stubs (M2). BUSL-1.1 (ours).
+# The fail-closed fanotify guard for SMB and local reads of stubs (M2). Apache-2.0 (ours).
 omnifile-smbguard = { path = "../omnifile-smbguard" }
-# Who asked: NFS uid / SMB session -> AD SID through winbind (M2). BUSL-1.1 (ours).
+# Who asked: NFS uid / SMB session -> AD SID through winbind (M2). Apache-2.0 (ours).
 omnifile-identity = { path = "../omnifile-identity" }
-# POSIX ACLs: catalog ACLs onto placeholders, normalisation (M2). BUSL-1.1 (ours).
+# POSIX ACLs: catalog ACLs onto placeholders, normalisation (M2). Apache-2.0 (ours).
 omnifile-acl = { path = "../omnifile-acl" }
 # Syscalls for startup checks (statfs, capabilities). MIT OR Apache-2.0.
 libc = "0.2"

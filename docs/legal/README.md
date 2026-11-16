@@ -2,6 +2,15 @@
 
 # Contributor agreements and questions for counsel
 
+> **Overtaken by decision 86 (2026-11-16):** the repository is now licensed under the Apache License 2.0,
+> and the BSL, its Additional Use Grant and commercial licences are gone. Under Apache-2.0 a contribution
+> is licensed on the same terms by default (section 5), so the reason below for a CLA no longer holds,
+> and a DCO may be enough. The drafts are kept as they were written; section 2 of
+> `questions-for-counsel.md` no longer applies, and the rest is for whenever the owner chooses how to take
+> outside contributions.
+
+The text below is as written for decision 25.
+
 OmniFile Gateway is licensed under the Business Source License 1.1, with `fsal/` under the LGPL-3.0 and
 `samba-vfs/` under the GPL-3.0-or-later (`LICENSE`, `LICENSES.md`, decision 25). AiLuxis Research sells
 commercial licences, so it must hold enough rights in every line of the code to do that. Decision 25

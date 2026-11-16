@@ -21,4 +21,4 @@ members = [
 edition = "2024"
 version = "0.1.0"
 publish = false
-license = "BUSL-1.1"
+license = "Apache-2.0"

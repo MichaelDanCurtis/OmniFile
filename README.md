@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img alt="Licence: BSL 1.1" src="https://img.shields.io/badge/licence-BSL%201.1-111111?style=flat-square"></a>
+  <a href="LICENSE"><img alt="Licence: Apache 2.0" src="https://img.shields.io/badge/licence-Apache%202.0-111111?style=flat-square"></a>
   <img alt="Version 0.1.0" src="https://img.shields.io/badge/version-0.1.0-111111?style=flat-square">
   <img alt="Status: pre-release" src="https://img.shields.io/badge/status-pre--release-D71921?style=flat-square">
   <img alt="NFSv3, NFSv4 and SMB" src="https://img.shields.io/badge/NFSv3%20%C2%B7%20NFSv4%20%C2%B7%20SMB-555555?style=flat-square">
@@ -208,11 +208,12 @@ The end-to-end exit tests in [`tests/e2e/`](tests/e2e) run on Lima VMs defined i
 
 ## Licence
 
-**Business Source License 1.1** ([`LICENSE`](LICENSE)): source-available, not open source. Production use
-is free for organisations with fewer than 100 people and under US$1M in revenue; others need a commercial
-licence from AiLuxis Research. Each version becomes **Apache-2.0** four years after it is published.
-`fsal/` is LGPL-3.0 and `samba-vfs/` is GPL-3.0-or-later. Every dependency and its licence:
-[`LICENSES.md`](LICENSES.md).
+**Apache License 2.0** ([`LICENSE`](LICENSE)). Use it, change it and ship it, at any size of
+organisation, commercially or not. If you redistribute it or a work built on it, keep the copyright and
+attribution notices, including those in [`NOTICE`](NOTICE), as the licence requires.
+
+`fsal/` is LGPL-3.0, to match NFS-Ganesha, and `samba-vfs/` is GPL-3.0-or-later, to match Samba. Every
+dependency and its licence: [`LICENSES.md`](LICENSES.md).
 
 Outside contributions aren't accepted yet; bug reports and questions are welcome
 ([`CONTRIBUTING.md`](CONTRIBUTING.md)).

@@ -11,7 +11,7 @@ name = "omnifile-setup"
 path = "src/main.rs"
 
 [dependencies]
-# The smb.conf checks the daemon applies to shares (decision 28). BUSL-1.1 (ours).
+# The smb.conf checks the daemon applies to shares (decision 28). Apache-2.0 (ours).
 omnifile-acl = { path = "../omnifile-acl" }
 # Answers file. MIT OR Apache-2.0.
 serde = { version = "1", features = ["derive"] }

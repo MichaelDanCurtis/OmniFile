@@ -2,11 +2,11 @@
 
 Every direct dependency, with its version and licence. Rule: **no AGPL at runtime**. GPL components run as separate processes and are never linked.
 
-This repository is licensed under the **Business Source License 1.1** (decision 25). Two directories are exceptions:
+This repository is licensed under the **Apache License 2.0** (decision 86; `LICENSE`, `NOTICE`). Two directories are exceptions:
 - `fsal/` is LGPL-3.0, to match NFS-Ganesha;
 - `samba-vfs/` is GPL-3.0-or-later, to match Samba (decision 36). That module runs inside smbd only, and no OmniFile binary links it.
 
-Because the code is sold under commercial licences, every dependency must allow that; AGPL and linked GPL code are ruled out. See `LICENSE` (Licensor: AiLuxis Research), `fsal/COPYING.LESSER` and `samba-vfs/COPYING`.
+Anyone may use, change and ship the code under Apache-2.0, commercially included, so every dependency must allow that too; AGPL and linked GPL code are ruled out. See `LICENSE`, `NOTICE` (copyright AiLuxis Research), `fsal/COPYING.LESSER` and `samba-vfs/COPYING`.
 
 ## How this file is checked
 

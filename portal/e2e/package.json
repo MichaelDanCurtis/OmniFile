@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "description": "M4 browser tests: Playwright (chromium) against the real web app and the dev OIDC issuer (dev/m4/stack.py).",
-  "license": "BUSL-1.1",
+  "license": "Apache-2.0",
   "type": "module",
   "packageManager": "npm@11.19.0",
   "engines": {

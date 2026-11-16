@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "description": "OmniFile Gateway portal: a browser-only SPA over the portal JSON API (decision 32).",
-  "license": "BUSL-1.1",
+  "license": "Apache-2.0",
   "type": "module",
   "packageManager": "npm@11.19.0",
   "engines": {

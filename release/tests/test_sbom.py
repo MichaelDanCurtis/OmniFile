@@ -90,7 +90,7 @@ source = { registry = "https://pypi.org/simple" }
 NPM_LOCK = {
     "name": "web", "version": "0.1.0", "lockfileVersion": 3, "requires": True,
     "packages": {
-        "": {"name": "web", "version": "0.1.0", "license": "BUSL-1.1", "dependencies": {"react": "19.3.0"},
+        "": {"name": "web", "version": "0.1.0", "license": "Apache-2.0", "dependencies": {"react": "19.3.0"},
              "devDependencies": {"vitest": "5.0.3"}},
         "node_modules/react": {"version": "19.3.0", "license": "MIT", "integrity": "sha512-AAAA"},
         "node_modules/vitest": {"version": "5.0.3", "dev": True, "license": "MIT", "dependencies": {"debug": "^4"}},
@@ -115,7 +115,7 @@ class Python(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.t)
         (self.t / "app").mkdir()
         (self.t / "app" / "uv.lock").write_text(UV_LOCK)
-        (self.t / "app" / "pyproject.toml").write_text('[project]\nname = "app"\nlicense = "BUSL-1.1"\n')
+        (self.t / "app" / "pyproject.toml").write_text('[project]\nname = "app"\nlicense = "Apache-2.0"\n')
 
     def doc(self):
         return sbom.uv_sbom(self.t / "app" / "uv.lock", "0.1.0", repo=self.t, venv=self.t / "none")
@@ -171,8 +171,8 @@ class Cargo(unittest.TestCase):
 
         meta = {
             "workspace_members": ["edge 0.1.0", "proto 0.1.0"],
-            "packages": [pkg("edge", "0.1.0", [("tokio", None), ("proptest", "dev")], "BUSL-1.1"),
-                         pkg("proto", "0.1.0", [], "BUSL-1.1"),
+            "packages": [pkg("edge", "0.1.0", [("tokio", None), ("proptest", "dev")], "Apache-2.0"),
+                         pkg("proto", "0.1.0", [], "Apache-2.0"),
                          pkg("tokio", "1.0.0"), pkg("mio", "1.0.0"), pkg("proptest", "1.0.0"), pkg("rand", "0.9.0")],
             "resolve": {"nodes": [
                 {"id": "edge 0.1.0", "deps": [{"pkg": "tokio 1.0.0", "dep_kinds": [{"kind": None}]},

@@ -29,13 +29,13 @@ name = "omnifile-guardctl"
 path = "src/bin/guardctl.rs"
 
 [dependencies]
-# The 64-byte trusted.omnifile marker (docs/contracts/fsal-socket.md §8). BUSL-1.1 (ours).
+# The 64-byte trusted.omnifile marker (docs/contracts/fsal-socket.md §8). Apache-2.0 (ours).
 omnifile-marker = { path = "../omnifile-marker" }
 # InodeKey, the SmbGuardHook trait of the stub handshake, and (harness only)
-# the production fill path. BUSL-1.1 (ours).
+# the production fill path. Apache-2.0 (ours).
 omnifile-stub = { path = "../omnifile-stub" }
 # CRC-64/NVME of the harness's synthetic content (a fill needs the catalog's
-# whole-file CRC to verify against). BUSL-1.1 (ours).
+# whole-file CRC to verify against). Apache-2.0 (ours).
 omnifile-integrity = { path = "../omnifile-integrity" }
 # Raw syscalls: fanotify, handles, statx, ioctls, sd_notify. MIT OR Apache-2.0.
 libc = "0.2"

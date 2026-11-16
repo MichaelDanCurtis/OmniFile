@@ -13,8 +13,8 @@ info:
     (new backend kinds, layouts, tiers, migration modes). Clients render an
     unknown value as its raw string. Request enums stay closed.
   license:
-    name: BUSL-1.1
-    identifier: BUSL-1.1
+    name: Apache-2.0
+    identifier: Apache-2.0
 servers:
   - url: https://omnifile-web.internal
     description: The `web` container app. Private network only; no client certificates.

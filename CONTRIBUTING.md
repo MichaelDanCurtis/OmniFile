@@ -1,10 +1,8 @@
 # Contributing to OmniFile Gateway
 
-**Outside contributions are not accepted yet.** OmniFile Gateway is licensed under the Business Source
-License 1.1 and AiLuxis Research sells commercial licences to it, so every contribution must come with
-rights that allow that. That needs a contributor licence agreement (decision 25), which is still a draft
-for counsel's review (`docs/legal/`). Until one is in effect, please don't open pull requests: we can't
-merge them, and we would rather not read code we may have to write again without looking at it.
+**Outside contributions are not accepted yet.** OmniFile Gateway is licensed under the Apache License 2.0
+(decision 86), and this file will say how changes are submitted and reviewed once the project takes them.
+Until then, please don't open pull requests.
 
 You are welcome to:
 
@@ -15,7 +13,8 @@ You are welcome to:
 - **ask for the GPL and LGPL source** of an appliance release through the issues of the sources repository
   the release's written offer names (decision 46).
 
-When the agreement is in effect, this file will say how to sign it and how changes are reviewed.
+If you use or change OmniFile Gateway, keep its copyright and attribution notices, including `NOTICE`:
+the Apache License requires it of anyone who redistributes the work or a work built on it.
 
 ## For the project's own developers
 

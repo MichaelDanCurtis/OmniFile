@@ -1,0 +1,19 @@
+OmniFile Gateway
+Copyright 2026 AiLuxis Research
+
+This product includes software developed by AiLuxis Research as OmniFile Gateway
+(https://github.com/MichaelDanCurtis/OmniFile).
+
+Licensed under the Apache License, Version 2.0 (see LICENSE), except:
+  - fsal/, licensed under the GNU Lesser General Public License v3.0
+    (fsal/COPYING.LESSER and fsal/COPYING), to match NFS-Ganesha;
+  - samba-vfs/, licensed under the GNU General Public License v3.0 or later
+    (samba-vfs/COPYING), to match Samba.
+
+Under section 4 of the Apache License, anyone who redistributes this work or a
+work derived from it, modified or not, must keep the copyright, patent, trademark
+and attribution notices of the source, and must include a readable copy of this
+NOTICE file's attribution notices with what they distribute. You may add your own
+notices beside these; you may not remove or alter them.
+
+Third-party components and their licences are listed in LICENSES.md.

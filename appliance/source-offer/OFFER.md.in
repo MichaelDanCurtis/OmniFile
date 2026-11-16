@@ -39,6 +39,6 @@ distribution. To ask, open an issue at:
 <https://github.com/{{SOURCES_REPO}}/issues>
 
 {{CONTACT_EXTRA}}Name the release ({{RELEASE}}) in the request. The OmniFile components that are not under those
-licences (the edge daemon and its tools, under the Business Source License 1.1) are not covered by this offer.
+licences (the edge daemon and its tools, under the Apache License 2.0) are not covered by this offer.
 
 Generated {{DATE}} by `appliance/source-offer/source_offer.py`.

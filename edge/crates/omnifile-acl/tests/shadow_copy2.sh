@@ -1,5 +1,5 @@
 #!/bin/bash
-# SPDX-License-Identifier: BUSL-1.1
+# SPDX-License-Identifier: Apache-2.0
 # Previous Versions over SMB (fsal-namespace.md section 7): the share stanza
 # `ShareConfig::render_smb` emits for a share with a rewind area, run by a
 # real smbd. Checks that vfs_shadow_copy2 takes the daemon's layout (an

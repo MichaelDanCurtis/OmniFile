@@ -16,8 +16,8 @@ npm, oci, deb, generic or tool), and in each row the first cell names one or mor
      release/licence-overrides.toml doesn't name one with a reason (an appliance SBOM made without the source
      offer has no Debian licences, so it fails here).
 
-The rules (AGENTS.md "License hygiene", decisions 25, 36 and 46):
-  - never AGPL, SSPL, a non-commercial licence, or BUSL other than our own;
+The rules (AGENTS.md "License hygiene", decisions 36, 46 and 86):
+  - never AGPL, SSPL, a non-commercial or source-available licence (BUSL, Elastic, Commons Clause);
   - code linked into or shipped with our software (cargo, pypi, npm, generic; scope required or optional) is
     permissive; MPL-2.0 (file-level, used unmodified) and, for Python only, LGPL (imported, not linked) are allowed
     when LICENSES.md names the package, transitive or not; GPL only for the separate-process components AGENTS.md

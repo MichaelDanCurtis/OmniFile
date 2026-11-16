@@ -56,7 +56,7 @@ HERE = Path(__file__).resolve().parent
 LOCK_PATTERNS = ("Cargo.lock", "uv.lock", "package-lock.json")
 SPEC = "1.6"
 SUPPLIER = "AiLuxis Research"
-OWN_LICENCE = "BUSL-1.1"
+OWN_LICENCE = "Apache-2.0"
 # Python markers are evaluated for the images' interpreter: CPython 3.12 on Linux x86-64 (python:3.12-slim).
 PY_ENV = {
     "sys_platform": "linux",

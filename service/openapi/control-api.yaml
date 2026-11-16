@@ -10,8 +10,8 @@ info:
     certificate. Identifiers are 64-bit integers sent as decimal strings.
     Every POST needs an Idempotency-Key header.
   license:
-    name: BUSL-1.1
-    identifier: BUSL-1.1
+    name: Apache-2.0
+    identifier: Apache-2.0
 servers:
   - url: https://omnifile.internal
     description: The `api` container app (clientCertificateMode require), private network only.
