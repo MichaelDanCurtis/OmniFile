@@ -76,7 +76,7 @@ A geoscientist copies a 184 GB survey line, `line_1042.segy`, to `/long-term-sto
 ## How it works
 
 ```mermaid
-flowchart LR
+flowchart TB
     subgraph site["Your data centre"]
         users["People and clusters<br/>NFSv3 · NFSv4 · SMB"]
         subgraph edge["Edge appliance · Ubuntu 26.04"]
