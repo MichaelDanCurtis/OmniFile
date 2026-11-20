@@ -191,7 +191,19 @@ def test_identity_from_sign_ins_and_from_graph(web, sql, admin) -> None:
                     "principalType": "Group",
                     "principalId": "g-1",
                     "principalDisplayName": f"Owners {w.share_name[6:]}",
-                }
+                },
+                {
+                    "appRoleId": "r-admin",
+                    "principalType": "User",
+                    "principalId": "u-1",
+                    "principalDisplayName": "Ann Admin",
+                },
+                {
+                    "appRoleId": "r-admin",
+                    "principalType": "ServicePrincipal",
+                    "principalId": "sp-x",
+                    "principalDisplayName": "Some app",
+                },
             ]
         },
         "/oauth2PermissionGrants?$filter=clientId eq 'sp-1' and consentType eq 'AllPrincipals'": {
@@ -204,7 +216,16 @@ def test_identity_from_sign_ins_and_from_graph(web, sql, admin) -> None:
     assert admin_groups == [
         {"object_id": "g-1", "display_name": f"Owners {w.share_name[6:]}", "sid": w.g_owners}
     ]
+    # A person named for the role is listed apart from the groups (decision 89); an
+    # application holding a person's role is neither.
+    admin_role = {x["role"]: x for x in s["roles"]}["ArchiveAdmin"]
+    assert admin_role["people"] == [{"object_id": "u-1", "display_name": "Ann Admin"}]
+    assert {x["role"]: x for x in s["roles"]}["User"]["people"] == []
+    assert s["role_holders"] == "groups"
     assert s["consent"]["status"] == "granted" and s["graph"]["status"] == "ok"
+    web.services.settings.role_holders = "people"
+    assert b.get("/v1/settings/identity").json()["role_holders"] == "people"
+    web.services.settings.role_holders = "groups"
 
     # Without Application.Read.All: a warning, and the sign-in view.
     web.services.probes = FakeProbes(

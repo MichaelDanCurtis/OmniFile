@@ -6722,6 +6722,8 @@ export interface components {
             finished_at: string | null;
         };
         IdentitySettings: {
+            /** @description Who holds the portal's roles (decision 89): groups, or named people with every AD user in the tenant a User. */
+            role_holders: string;
             tenant_id: string;
             client_id: string;
             api_audiences: string[];
@@ -6739,6 +6741,11 @@ export interface components {
                     object_id: string | null;
                     display_name: string | null;
                     sid?: string | null;
+                }[];
+                /** @description People the role is assigned to by name (decision 89), from Graph; empty when Graph can't be read. */
+                people: {
+                    object_id: string | null;
+                    display_name: string | null;
                 }[];
                 /** @description People who held it at a portal sign-in in the last 30 days. */
                 people_seen: number;

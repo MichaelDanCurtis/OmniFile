@@ -290,7 +290,8 @@ Still needed: the exit in a clean subscription, with cloud connect's VERIFY line
 - Scale tests: catalog at 10⁸ files; thousands of concurrent waiters (the drain-rate finding); 200 GB SEG-Y at line rate.
 - Chaos tests: daemon kill during fills, a service outage (reads keep failing closed, and recalls resume), and network loss.
 - Windows client matrix (from the pilot).
-- Licence: Apache-2.0 since decision 86; still to choose how outside contributions are taken (a CLA or the DCO, drafts in `docs/legal/`).
+- Licence: Apache-2.0 since decision 86; outside contributions with a DCO sign-off (decision 87).
+- Before the first release: move the update feed (`appliance/release.conf` `RELEASE_REPO`) to a repository appliances can download from without a token (decision 88).
 - A first client deployment alongside a Prizmanyx engagement.
 
 **Status (2026-11-05): built as far as it can be without a client** (`docs/milestones/M7.md`):

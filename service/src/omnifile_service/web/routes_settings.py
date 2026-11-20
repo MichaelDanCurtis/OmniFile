@@ -188,7 +188,13 @@ async def get_identity(ctx: Ctx) -> WebResult:
     s = ctx.svc.settings
     async with ctx.svc.catalog.read() as db:
         out = await identity.identity_settings(
-            db, ctx.svc.probes, s.tenant_id, s.client_id, list(s.api_audiences), ctx.now
+            db,
+            ctx.svc.probes,
+            s.tenant_id,
+            s.client_id,
+            list(s.api_audiences),
+            ctx.now,
+            s.role_holders,
         )
     return WebResult(200, out)
 

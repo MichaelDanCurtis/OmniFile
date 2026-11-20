@@ -48,7 +48,7 @@ What that gains:
 
 What it costs:
 
-- **Licence:** the module links into smbd, so it must be **GPL-3**. It follows the FSAL pattern: small, in its own directory (`smb/`), its own licence files, and the logic stays in our BSL daemon behind the socket. This does **not** break the "don't link GPL code into our binaries" rule; the GPL code is ours, in a separate module.
+- **Licence:** the module links into smbd, so it must be **GPL-3**. It follows the FSAL pattern: small, in its own directory (`smb/`), its own licence files, and the logic stays in our Apache-2.0 daemon behind the socket. This does **not** break the "don't link GPL code into our binaries" rule; the GPL code is ours, in a separate module.
 - **Maintenance:** Samba's VFS interface changes between releases, so the module is built against the exact Samba version we ship. We control that version in our own container image, as we do for Ganesha and the FSAL.
 - **Coverage:** only access through Samba is guarded. On an appliance nothing else reads the data filesystem, so that's acceptable. fanotify can come back later, as an extra safeguard on kernels that have it.
 - **Async I/O:** the module implements Samba's async read path (`pread_send`/`pread_recv`). `sendfile` stays off on stub-capable shares.

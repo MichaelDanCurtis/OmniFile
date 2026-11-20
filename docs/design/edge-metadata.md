@@ -49,7 +49,7 @@ The question in the M0 brief was whether the C FSAL should read the replica dire
 
 Reading an mmap'd LMDB from Ganesha would be possible (readers never block on the writer), but:
 - a page fault on a cold page of a 30 GB file is a disk read inside a worker thread;
-- the C side would have to parse rows whose schema the Rust side owns, so every schema change becomes a two-language, two-licence (LGPL FSAL, BSL daemon) release;
+- the C side would have to parse rows whose schema the Rust side owns, so every schema change becomes a two-language, two-licence (LGPL FSAL, Apache-2.0 daemon) release;
 - it would only be needed if the namespace lived outside xfs, which R1 rejects.
 
 If R1 were decided differently, this section would have to be reopened: LMDB would then be the best fit.

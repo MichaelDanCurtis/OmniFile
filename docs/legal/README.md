@@ -2,12 +2,9 @@
 
 # Contributor agreements and questions for counsel
 
-> **Overtaken by decision 86 (2026-11-16):** the repository is now licensed under the Apache License 2.0,
-> and the BSL, its Additional Use Grant and commercial licences are gone. Under Apache-2.0 a contribution
-> is licensed on the same terms by default (section 5), so the reason below for a CLA no longer holds,
-> and a DCO may be enough. The drafts are kept as they were written; section 2 of
-> `questions-for-counsel.md` no longer applies, and the rest is for whenever the owner chooses how to take
-> outside contributions.
+> **Overtaken by decisions 86 and 87 (2026-11-16 and 11-19):** the repository is licensed under the
+> Apache License 2.0, and outside contributions are taken with a DCO sign-off on every commit, as
+> `CONTRIBUTING.md` says. No CLA is in effect. The drafts are kept as they were written, for reference.
 
 The text below is as written for decision 25.
 

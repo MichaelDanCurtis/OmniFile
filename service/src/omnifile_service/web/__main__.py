@@ -13,6 +13,10 @@ Environment:
                                   second phase sets them (deploy/entra/register.sh)
   OMNIFILE_WEB_API_AUDIENCES      comma-separated bearer audiences (application ID URI,
                                   client id); unset: partner tokens are refused
+  OMNIFILE_WEB_ROLE_HOLDERS       groups (default) | people: who holds the portal's roles
+                                  (decision 89). people: a signed-in user whose token carries
+                                  an AD SID (onprem_sid) is a User with no assignment, beside
+                                  any role Entra gave; groups: only the roles Entra gave
   OMNIFILE_WEB_OIDC               entra (default) | dev. dev mounts the dev issuer at
                                   /dev-idp and needs OMNIFILE_DEV_MODE=1
   OMNIFILE_WEB_CLIENT_SECRET      dev only, and only with OMNIFILE_DEV_MODE=1. Otherwise web
@@ -77,7 +81,7 @@ from ..backends.sim.clock import DevClockRefused, OffsetClock, dev_clock, requir
 from ..catalog.connect import Db, connect, from_env_or_exit, pool_max_or_exit
 from ..settings.ports import probes_from_env, settings_env
 from .auth import Authenticator, HttpJwks, ManagedIdentityAssertion, StaticJwks, StaticSecret
-from .config import OidcEndpoints, WebSettings
+from .config import ROLE_HOLDERS, OidcEndpoints, WebSettings
 from .context import WebServices
 from .devidp import DevClient, DevIdp, DevUser, default_users
 from .preview import PolicyPreviewPort
@@ -117,6 +121,14 @@ def trusted_ingress() -> tuple:
         return parse_networks(raw)
     except ValueError as exc:
         raise SystemExit(f"OMNIFILE_WEB_TRUSTED_INGRESS: {exc}") from None
+
+
+def role_holders(value: str | None) -> str:
+    """`OMNIFILE_WEB_ROLE_HOLDERS`: groups (the default) or people (decision 89)."""
+    got = (value or "groups").strip()
+    if got not in ROLE_HOLDERS:
+        sys.exit("OMNIFILE_WEB_ROLE_HOLDERS must be groups or people")
+    return got
 
 
 def enrol_ca_sha256() -> str | None:
@@ -196,6 +208,7 @@ def build():
         enrol_server_ca_sha256=enrol_ca_sha256(),
         trusted_ingress=trusted_ingress(),
         appliance_images_url=_env("OMNIFILE_APPLIANCE_IMAGES_URL"),
+        role_holders=role_holders(_env("OMNIFILE_WEB_ROLE_HOLDERS")),
     )
     if key := cursor_key(_env("OMNIFILE_WEB_CURSOR_KEY")):
         settings.cursor_key = key

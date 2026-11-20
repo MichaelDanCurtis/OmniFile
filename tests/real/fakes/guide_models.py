@@ -86,6 +86,17 @@ def az(F, s: dict, v: str, opts: dict) -> bool:
                 3,
             )
         F.emit(g, opts)
+    elif v == "ad user show":
+        # A person by sign-in name (step 30 with OMNI_ROLE_HOLDERS=people): any UPN is a user of
+        # the tenant here; anything else is refused as Graph refuses it.
+        key = o("--id") or ""
+        if "@" not in key:
+            F.die(
+                f"Resource '{key}' does not exist or one of its queried reference-property "
+                "objects are not present.",
+                3,
+            )
+        F.emit({"id": stable_id("user", key), "userPrincipalName": key}, opts)
     elif v == "ad group member check":
         gid, member = o("--group"), o("--member-id")
         g = next((x for x in s["ad_groups"] if gid in (x["id"], x["displayName"])), None)

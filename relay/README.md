@@ -15,7 +15,7 @@ Teams ──HTTPS──► relay (public)  POST /api/messages
            worker updates the card later (service holds the bot credentials)
 ```
 
-Python 3.12, Starlette + uvicorn, PyJWT + `cryptography`, httpx. BSL 1.1 like the rest of the repo.
+Python 3.12, Starlette + uvicorn, PyJWT + `cryptography`, httpx. Apache-2.0 like the rest of the repo.
 
 ```
 uv sync

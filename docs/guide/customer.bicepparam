@@ -60,6 +60,9 @@ var phase2 = readEnvironmentVariable('OMNI_PHASE', '1') == '2'
 param edgeCaCertPem = readEnvironmentVariable('OMNI_EDGE_CA_PEM', '')
 param enrolServerCaSha256 = readEnvironmentVariable('OMNI_ENROL_SERVER_CA_SHA256', '')
 param webClientId = readEnvironmentVariable('OMNI_WEB_CLIENT_ID', '')
+// Who holds the portal's roles (section 1.5, decision 89): groups or people.
+var roleHoldersChoice = readEnvironmentVariable('OMNI_ROLE_HOLDERS', '')
+param webRoleHolders = empty(roleHoldersChoice) ? 'groups' : roleHoldersChoice
 param webApiAudiences = json(readEnvironmentVariable('OMNI_WEB_API_AUDIENCES', '[]'))
 param teamsAppCatalogId = readEnvironmentVariable('OMNI_TEAMS_APP_CATALOG_ID', '')
 param teamsIntentKid = readEnvironmentVariable('OMNI_INTENT_KID', '')

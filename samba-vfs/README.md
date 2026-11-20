@@ -1,6 +1,6 @@
 # vfs_omnifile_prevver (Samba VFS module)
 
-This is a Samba VFS module, licensed **GPL-3.0-or-later** to match Samba (`COPYING`). The rest of the repository is BSL 1.1, and `fsal/` is LGPL-3.0. The module runs inside smbd and is never linked into any OmniFile binary (decision 36). It doesn't talk to any OmniFile process.
+This is a Samba VFS module, licensed **GPL-3.0-or-later** to match Samba (`COPYING`). The rest of the repository is Apache-2.0, and `fsal/` is LGPL-3.0. The module runs inside smbd and is never linked into any OmniFile binary (decision 36). It doesn't talk to any OmniFile process.
 
 ## What it is for
 

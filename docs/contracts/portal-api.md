@@ -102,9 +102,9 @@ With `OMNIFILE_DEV_MODE=1` only, `web` mounts `/dev-idp/`:
 
 | Role | From | Grants |
 |---|---|---|
-| `ArchiveAdmin` | Entra app role, assigned to an AD group | Policies, proposals approval, share settings, WORM, legal holds, price table, audit, the group directory. **Not** file content access |
+| `ArchiveAdmin` | Entra app role, assigned to an AD group or to named people (decision 89) | Policies, proposals approval, share settings, WORM, legal holds, price table, audit, the group directory. **Not** file content access |
 | `DataSteward` | Entra app role | Tier pins and keep-online holds on items they can read; proposals; read policies |
-| `User` | Entra app role | Browse, recall, rewind and download what their AD groups can read |
+| `User` | Entra app role; with `OMNIFILE_WEB_ROLE_HOLDERS=people`, also every signed-in user whose token carries an AD SID, with no assignment (decision 89) | Browse, recall, rewind and download what their AD groups can read |
 | Share **Owner**, **Writer**, **Reader** | Membership of the share's AD groups (`share.owners_group_sid`, …), by SID | Owner: rewind depth, open policy, Writers and Readers groups, pins and holds in that share. Owner or Writer: restore a version |
 
 A signed-in user with no app role gets `403 role_required` on every `/v1` route except `/v1/me`.

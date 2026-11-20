@@ -506,6 +506,12 @@ class Authenticator:
         if not (isinstance(sid, str) and _SID.match(sid)):
             sid = None
         roles = sorted(r for r in (claims.get("roles") or []) if r in USER_ROLES)
+        # Decision 89: with named people holding the roles, every AD user in the tenant
+        # is a User. "AD user" is a token with a SID: a guest or a cloud-only account has
+        # none, and gets only what Entra gave. What a User sees is still each file's ACL.
+        tenant_user = s.role_holders == "people" and sid is not None and "User" not in roles
+        if tenant_user:
+            roles = sorted([*roles, "User"])
         names = claims.get("_claim_names") or {}
         overage = bool(claims.get("hasgroups")) or (isinstance(names, dict) and "groups" in names)
         token_groups = [g for g in (claims.get("groups") or []) if isinstance(g, str)]
@@ -615,7 +621,14 @@ class Authenticator:
                 (
                     identity["sid"] if identity else None,
                     client_addr(request, self.settings.trusted_ingress),
-                    _json({"roles": roles, "groups_source": source, "oid": oid}),
+                    _json(
+                        {
+                            "roles": roles,
+                            "groups_source": source,
+                            "oid": oid,
+                            **({"user_role": "tenant"} if tenant_user else {}),
+                        }
+                    ),
                 ),
             )
         return session_id

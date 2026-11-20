@@ -15,6 +15,9 @@ ENTRA = "https://login.microsoftonline.com"
 USER_ROLES = ("ArchiveAdmin", "DataSteward", "User")
 #: Entra app roles of partner applications (section 2.2).
 APP_ROLES = ("Policy.Propose", "Recall.Request", "Archive.Read", "Archive.Adopt")
+#: Who holds the portal's roles (decision 89): AD groups, or named people with every
+#: AD user in the tenant a User.
+ROLE_HOLDERS = ("groups", "people")
 
 
 @dataclass
@@ -108,6 +111,10 @@ class WebSettings:
     #: The ingress's addresses: only from these peers is X-Forwarded-For
     #: believed, for the sign-in rate limit and audit rows' client_addr.
     trusted_ingress: tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, ...] = ()
+    #: groups: a user's portal roles are the ones Entra gave. people: a user whose
+    #: token carries an AD SID is also a User with no assignment (decision 89); a
+    #: guest or cloud-only account has only what Entra gave.
+    role_holders: str = "groups"
 
     @property
     def redirect_uri(self) -> str:

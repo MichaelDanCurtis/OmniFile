@@ -63,9 +63,14 @@ def omni(st: dict, prefix: str, aws: dict[str, str]) -> dict[str, str]:
         "OMNI_AD_JOIN_OU": "",
         "OMNI_AD_ADMIN_GROUP": "filer admins",
         "OMNI_AD_ADMIN_USER": "ofreal-join",
-        "OMNI_GROUP_ARCHIVEADMIN": "OmniFile-ArchiveAdmins",
-        "OMNI_GROUP_DATASTEWARD": "OmniFile-DataStewards",
-        "OMNI_GROUP_USER": "Proj-Writers",
+        # The run's DC isn't synced to Entra, so no AD group could hold a portal role, and a
+        # test tenant may have no Entra ID P1: the owner holds the roles by name (decision 89).
+        "OMNI_ROLE_HOLDERS": "people",
+        "OMNI_GROUP_ARCHIVEADMIN": "",
+        "OMNI_GROUP_DATASTEWARD": "",
+        "OMNI_GROUP_USER": "",
+        "OMNI_PEOPLE_ARCHIVEADMIN": st["identity"].get("user", ""),
+        "OMNI_PEOPLE_DATASTEWARD": st["identity"].get("user", ""),
         "OMNI_FIRST_UID": "20000",
         "OMNI_FIRST_GID": "30000",
         "OMNI_DOMAIN_USERS_GID": "30010",  # samba-dc.sh gives Domain Users this gidNumber

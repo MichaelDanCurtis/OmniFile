@@ -185,6 +185,31 @@ class CheckEnvTest(Scratch):
             self.assertEqual(r.returncode, 1, (bad, r.stdout))
             self.assertIn(words, r.stdout)
 
+    def test_the_portal_roles_go_to_groups_or_to_named_people(self) -> None:
+        # people: the role groups may be empty, and at least one ArchiveAdmin is named.
+        people = dict(OMNI_ROLE_HOLDERS="people", OMNI_GROUP_ARCHIVEADMIN="", OMNI_GROUP_DATASTEWARD="",
+                      OMNI_GROUP_USER="", OMNI_PEOPLE_ARCHIVEADMIN="ann@contoso.example bo@contoso.example",
+                      OMNI_PEOPLE_DATASTEWARD="")
+        self.write(**people)
+        r = run([str(TOOLS / "check-env.sh")], self.dir)
+        self.assertEqual(r.returncode, 0, r.stdout)
+        for bad, words in ((dict(OMNI_PEOPLE_ARCHIVEADMIN=" "), "OMNI_PEOPLE_ARCHIVEADMIN: name at least one"),
+                           (dict(OMNI_PEOPLE_DATASTEWARD="cy"), "OMNI_PEOPLE_DATASTEWARD: 'cy' is not a sign-in name"),
+                           (dict(OMNI_ROLE_HOLDERS="everyone"), "OMNI_ROLE_HOLDERS: groups or people")):
+            self.write(**{**people, **bad})
+            r = run([str(TOOLS / "check-env.sh")], self.dir)
+            self.assertEqual(r.returncode, 1, (bad, r.stdout))
+            self.assertIn(words, r.stdout)
+        # Empty means groups.
+        self.write(OMNI_ROLE_HOLDERS="")
+        r = run([str(TOOLS / "check-env.sh")], self.dir)
+        self.assertEqual(r.returncode, 0, r.stdout)
+        # groups: the role groups are needed, and named people aren't.
+        self.write(OMNI_ROLE_HOLDERS="groups", OMNI_GROUP_USER="")
+        r = run([str(TOOLS / "check-env.sh")], self.dir)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("OMNI_GROUP_USER: empty", r.stdout)
+
     def test_the_aws_name_suffix_is_empty_or_a_run_id(self) -> None:
         self.write(OMNI_AWS_NAME_SUFFIX="run-20261103-a1")
         r = run([str(TOOLS / "check-env.sh")], self.dir)
@@ -555,6 +580,17 @@ class TlsIssuerTest(Scratch):
 
 
 class AppRolesTest(Scratch):
+    SKUS = "rest --method GET --uri https://graph.microsoft.com/v1.0/subscribedSkus"
+    POST = "rest --method POST"
+    EXISTS = {"stdout": 'Bad Request({"error":{"code":"Request_BadRequest","message":'
+                        '"Permission being assigned already exists on the object"}})', "rc": 1}
+
+    def posts(self) -> list[dict]:
+        return [json.loads(c[c.index("--body") + 1]) for c in self.az_calls() if c[:3] == ["rest", "--method", "POST"]]
+
+    def calls(self) -> list[str]:
+        return [" ".join(c) for c in self.az_calls()] if self.log.exists() else []
+
     def test_roles_are_assigned_once(self) -> None:
         env = self.fake_az({
             "ad sp show --id app --query id": {"stdout": "sp-1\n"},
@@ -562,28 +598,144 @@ class AppRolesTest(Scratch):
             "ad sp show --id app --query appRoles[?value=='User']": {"stdout": "role-u\n"},
             "ad group show --group Admins": {"stdout": "g-admins\n"},
             "ad group show --group Everyone": {"stdout": "g-users\n"},
-            "rest --method GET": {"stdout": "0\n"},
+            self.SKUS: {"stdout": "EXCHANGE_S_STANDARD\nAAD_PREMIUM\n"},
         })
         r = run([str(TOOLS / "assign-app-roles.sh"), "--app-id", "app", "ArchiveAdmin=Admins", "User=Everyone"],
                 self.dir, env)
         self.assertEqual(r.returncode, 0, r.stderr)
-        posts = [c for c in self.az_calls() if c[:3] == ["rest", "--method", "POST"]]
-        self.assertEqual(len(posts), 2)
-        body = json.loads(posts[0][posts[0].index("--body") + 1])
-        self.assertEqual(body, {"principalId": "g-admins", "resourceId": "sp-1", "appRoleId": "role-aa"})
+        self.assertEqual(self.posts()[0], {"principalId": "g-admins", "resourceId": "sp-1", "appRoleId": "role-aa"})
+        self.assertEqual(len(self.posts()), 2)
+        self.assertIn("Admins now has ArchiveAdmin", r.stdout)
+        # The licences are read once, for both groups.
+        self.assertEqual(sum(c.startswith(self.SKUS) for c in self.calls()), 1)
 
     def test_a_group_that_has_its_role_is_left_alone(self) -> None:
         env = self.fake_az({
             "ad sp show --id app --query id": {"stdout": "sp-1\n"},
             "ad sp show --id app --query appRoles": {"stdout": "role-aa\n"},
             "ad group show": {"stdout": "g\n"},
-            "rest --method GET": {"stdout": "1\n"},
+            self.SKUS: {"stdout": "AAD_PREMIUM_P2\n"},
+            self.POST: self.EXISTS,
         })
         r = run([str(TOOLS / "assign-app-roles.sh"), "--app-id", "app", "ArchiveAdmin=Admins"], self.dir, env)
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertIn("already has ArchiveAdmin", r.stdout)
-        self.assertFalse([c for c in self.az_calls() if "POST" in c])
+        self.assertIn("Admins already has ArchiveAdmin", r.stdout)
+        self.assertNotIn("now has", r.stdout)
 
+    def test_any_other_refusal_stops_it_with_graphs_words(self) -> None:
+        env = self.fake_az({
+            "ad sp show --id app --query id": {"stdout": "sp-1\n"},
+            "ad sp show --id app --query appRoles": {"stdout": "role-aa\n"},
+            "ad group show": {"stdout": "g\n"},
+            self.SKUS: {"stdout": "AAD_PREMIUM\n"},
+            self.POST: {"stdout": "Forbidden(Insufficient privileges to complete the operation.)", "rc": 1},
+        })
+        r = run([str(TOOLS / "assign-app-roles.sh"), "--app-id", "app", "ArchiveAdmin=Admins", "User=Everyone"],
+                self.dir, env)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("Insufficient privileges", r.stderr)
+        self.assertIn("couldn't give Admins the role ArchiveAdmin", r.stderr)
+        self.assertEqual(len(self.posts()), 1)   # stopped at the first
+
+    def test_a_group_on_a_tenant_without_p1_stops_before_anything_is_assigned(self) -> None:
+        env = self.fake_az({
+            "ad sp show --id app --query id": {"stdout": "sp-1\n"},
+            "ad sp show --id app --query appRoles": {"stdout": "role-aa\n"},
+            "ad group show": {"stdout": "g\n"},
+            self.SKUS: {"stdout": "EXCHANGE_S_STANDARD\n"},
+        })
+        r = run([str(TOOLS / "assign-app-roles.sh"), "--app-id", "app", "ArchiveAdmin=Admins"], self.dir, env)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("needs Entra ID P1", r.stderr)
+        self.assertIn("OMNI_ROLE_HOLDERS=people", r.stderr)
+        self.assertFalse(self.posts())
+
+    def test_unreadable_licences_are_noted_and_the_group_is_tried(self) -> None:
+        env = self.fake_az({
+            "ad sp show --id app --query id": {"stdout": "sp-1\n"},
+            "ad sp show --id app --query appRoles": {"stdout": "role-aa\n"},
+            "ad group show": {"stdout": "g\n"},
+            self.SKUS: {"stdout": "", "rc": 1},
+        })
+        r = run([str(TOOLS / "assign-app-roles.sh"), "--app-id", "app", "ArchiveAdmin=Admins"], self.dir, env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("couldn't read the tenant's licences", r.stdout)
+        self.assertEqual(len(self.posts()), 1)
+
+    def test_people_mode_names_each_person_and_gives_user_to_nobody(self) -> None:
+        env = self.fake_az({
+            "ad sp show --id app --query id": {"stdout": "sp-1\n"},
+            "ad sp show --id app --query appRoles[?value=='ArchiveAdmin']": {"stdout": "role-aa\n"},
+            "ad sp show --id app --query appRoles[?value=='DataSteward']": {"stdout": "role-ds\n"},
+            "ad user show --id ann@corp.example": {"stdout": "u-ann\n"},
+            "ad user show --id bo@corp.example": {"stdout": "u-bo\n"},
+            "ad user show --id cy@corp.example": {"stdout": "u-cy\n"},
+            "ad sp show --id app --query appRoleAssignmentRequired": {"stdout": "false\n"},
+        }, OMNI_ROLE_HOLDERS="people", OMNI_PEOPLE_ARCHIVEADMIN="ann@corp.example  bo@corp.example",
+           OMNI_PEOPLE_DATASTEWARD="cy@corp.example", OMNI_GROUP_USER="")
+        r = run([str(TOOLS / "assign-app-roles.sh"), "--app-id", "app", "--portal-roles"], self.dir, env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.posts(), [
+            {"principalId": "u-ann", "resourceId": "sp-1", "appRoleId": "role-aa"},
+            {"principalId": "u-bo", "resourceId": "sp-1", "appRoleId": "role-aa"},
+            {"principalId": "u-cy", "resourceId": "sp-1", "appRoleId": "role-ds"}])
+        self.assertIn("every AD user in the tenant", r.stdout)
+        # No group, so no licence check; and nobody is given User.
+        self.assertFalse([c for c in self.calls()
+                          if c.startswith(self.SKUS) or c.startswith("ad group show") or "'User'" in c])
+
+    def test_people_mode_stops_if_the_app_requires_assignment(self) -> None:
+        env = self.fake_az({
+            "ad sp show --id app --query id": {"stdout": "sp-1\n"},
+            "ad sp show --id app --query appRoleAssignmentRequired": {"stdout": "true\n"},
+        }, OMNI_ROLE_HOLDERS="people", OMNI_PEOPLE_ARCHIVEADMIN="ann@corp.example")
+        r = run([str(TOOLS / "assign-app-roles.sh"), "--app-id", "app", "--portal-roles"], self.dir, env)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn('"Assignment required" on', r.stderr)
+        self.assertFalse(self.posts())
+
+    def test_people_mode_without_an_archiveadmin_is_refused(self) -> None:
+        env = self.fake_az({}, OMNI_ROLE_HOLDERS="people", OMNI_PEOPLE_ARCHIVEADMIN=" ",
+                           OMNI_PEOPLE_DATASTEWARD="cy@corp.example")
+        r = run([str(TOOLS / "assign-app-roles.sh"), "--app-id", "app", "--portal-roles"], self.dir, env)
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("at least one OMNI_PEOPLE_ARCHIVEADMIN", r.stderr)
+        self.assertEqual(self.calls(), [])
+
+    def test_groups_mode_gives_the_three_groups_their_roles(self) -> None:
+        env = self.fake_az({
+            "ad sp show --id app --query id": {"stdout": "sp-1\n"},
+            "ad sp show --id app --query appRoles[?value=='ArchiveAdmin']": {"stdout": "role-aa\n"},
+            "ad sp show --id app --query appRoles[?value=='DataSteward']": {"stdout": "role-ds\n"},
+            "ad sp show --id app --query appRoles[?value=='User']": {"stdout": "role-u\n"},
+            "ad group show --group A": {"stdout": "g-a\n"},
+            "ad group show --group D": {"stdout": "g-d\n"},
+            "ad group show --group U": {"stdout": "g-u\n"},
+            self.SKUS: {"stdout": "AAD_PREMIUM\n"},
+        }, OMNI_ROLE_HOLDERS="groups", OMNI_GROUP_ARCHIVEADMIN="A", OMNI_GROUP_DATASTEWARD="D",
+           OMNI_GROUP_USER="U", OMNI_PEOPLE_ARCHIVEADMIN="")
+        r = run([str(TOOLS / "assign-app-roles.sh"), "--app-id", "app", "--portal-roles"], self.dir, env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual([(p["principalId"], p["appRoleId"]) for p in self.posts()],
+                         [("g-a", "role-aa"), ("g-d", "role-ds"), ("g-u", "role-u")])
+
+    def test_an_empty_mode_means_groups(self) -> None:
+        env = self.fake_az({
+            "ad sp show --id app --query id": {"stdout": "sp-1\n"},
+            "ad sp show --id app --query appRoles": {"stdout": "role\n"},
+            "ad group show": {"stdout": "g\n"},
+            self.SKUS: {"stdout": "AAD_PREMIUM\n"},
+        }, OMNI_ROLE_HOLDERS="", OMNI_GROUP_ARCHIVEADMIN="A", OMNI_GROUP_DATASTEWARD="D", OMNI_GROUP_USER="U")
+        r = run([str(TOOLS / "assign-app-roles.sh"), "--app-id", "app", "--portal-roles"], self.dir, env)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(len(self.posts()), 3)
+        self.assertFalse([c for c in self.calls() if "appRoleAssignmentRequired" in c])
+
+    def test_an_unknown_mode_is_refused(self) -> None:
+        env = self.fake_az({}, OMNI_ROLE_HOLDERS="everyone")
+        r = run([str(TOOLS / "assign-app-roles.sh"), "--app-id", "app", "--portal-roles"], self.dir, env)
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("must be groups or people", r.stderr)
 
     def test_an_api_clients_application_gets_its_scopes(self) -> None:
         env = self.fake_az({
@@ -591,15 +743,14 @@ class AppRolesTest(Scratch):
             "ad sp show --id web --query appRoles[?value=='Archive.Read']": {"stdout": "role-read\n"},
             "ad sp show --id web --query appRoles[?value=='Archive.Adopt']": {"stdout": "role-adopt\n"},
             "ad sp show --id 55555555-5555-5555-5555-555555555555 --query id": {"stdout": "sp-client\n"},
-            "rest --method GET": {"stdout": "0\n"},
         })
         client = "app:55555555-5555-5555-5555-555555555555"
         r = run([str(TOOLS / "assign-app-roles.sh"), "--app-id", "web", f"Archive.Read={client}",
                  f"Archive.Adopt={client}"], self.dir, env)
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertFalse([c for c in self.az_calls() if c[:3] == ["ad", "group", "show"]])
-        posts = [json.loads(c[c.index("--body") + 1]) for c in self.az_calls() if c[:3] == ["rest", "--method", "POST"]]
-        self.assertEqual(posts, [
+        # An application is no group: no group lookup, and no licence check.
+        self.assertFalse([c for c in self.calls() if c.startswith("ad group show") or c.startswith(self.SKUS)])
+        self.assertEqual(self.posts(), [
             {"principalId": "sp-client", "resourceId": "sp-web", "appRoleId": "role-read"},
             {"principalId": "sp-client", "resourceId": "sp-web", "appRoleId": "role-adopt"}])
 
@@ -612,7 +763,7 @@ class AppRolesTest(Scratch):
         r = run([str(TOOLS / "assign-app-roles.sh"), "--app-id", "web", "Archive.Read=app:nobody"], self.dir, env)
         self.assertEqual(r.returncode, 1)
         self.assertIn("no app:nobody in Entra", r.stderr)
-        self.assertFalse([c for c in self.az_calls() if "POST" in c])
+        self.assertFalse(self.posts())
 
 
 class RunStepTest(Scratch):

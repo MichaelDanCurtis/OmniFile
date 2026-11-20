@@ -215,5 +215,5 @@ attribution notices, including those in [`NOTICE`](NOTICE), as the licence requi
 `fsal/` is LGPL-3.0, to match NFS-Ganesha, and `samba-vfs/` is GPL-3.0-or-later, to match Samba. Every
 dependency and its licence: [`LICENSES.md`](LICENSES.md).
 
-Outside contributions aren't accepted yet; bug reports and questions are welcome
-([`CONTRIBUTING.md`](CONTRIBUTING.md)).
+Contributions are welcome: sign off each commit (`git commit -s`, the Developer Certificate of Origin)
+and see [`CONTRIBUTING.md`](CONTRIBUTING.md).

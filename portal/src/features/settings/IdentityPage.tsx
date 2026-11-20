@@ -8,6 +8,17 @@ import { CheckList, Fact, StatusBadge, StepList, type StepItem } from "./common"
 import { useIdentitySettings, useWhoAmI } from "./queries";
 
 type IdentitySettings = NonNullable<ReturnType<typeof useIdentitySettings>["data"]>;
+type RoleRow = IdentitySettings["roles"][number];
+
+/** Who holds a role: its groups and named people, or, for User with named people, everyone. */
+function heldBy(r: RoleRow, named: boolean): string {
+  if (named && r.role === "User") return "Every AD user in the tenant";
+  const who = [
+    ...r.groups.map((g) => g.display_name ?? g.sid ?? g.object_id ?? "?"),
+    ...r.people.map((p) => p.display_name ?? p.object_id ?? "?"),
+  ];
+  return who.length ? who.join(", ") : "—";
+}
 
 /**
  * What Entra ID and Active Directory each do for OmniFile, and a done / to-do
@@ -19,6 +30,10 @@ function SetupSteps({ s }: { s: IdentitySettings }) {
   const edges = useEdges();
   const personRoles = s.roles.filter((r) => r.member_types.includes("user"));
   const roleless = personRoles.filter((r) => r.groups.length === 0).map((r) => r.role);
+  // Decision 89: named people hold ArchiveAdmin and DataSteward, and every AD user is a User.
+  const named = s.role_holders === "people";
+  const admins = personRoles.find((r) => r.role === "ArchiveAdmin");
+  const adminNamed = !!admins && (admins.people.length > 0 || admins.people_seen > 0);
   const w = who.data;
   const tokenOk = !!w?.sid && w.group_count > 0 && w.checks.every((c) => c.status === "ok");
   const azureSteps = azure.data?.steps ?? [];
@@ -44,15 +59,24 @@ function SetupSteps({ s }: { s: IdentitySettings }) {
           ? s.consent.detail
           : `${s.consent.detail} A tenant administrator grants it from the link below.`,
     },
-    {
-      code: "roles",
-      title: "App roles given to AD groups",
-      status: roleless.length === 0 ? "done" : "todo",
-      detail:
-        roleless.length === 0
-          ? "Every role for people is held by at least one AD group synced to Entra."
-          : `No group seen holding ${roleless.join(", ")}. Assign the roles to AD groups in Enterprise applications, Users and groups.`,
-    },
+    named
+      ? {
+          code: "roles",
+          title: "App roles given to named people",
+          status: adminNamed ? "done" : "todo",
+          detail: adminNamed
+            ? "ArchiveAdmin is held by people named in Entra, and every AD user in the tenant is a User."
+            : "Nobody is named for ArchiveAdmin yet. Run step 30 of the customer guide with OMNI_PEOPLE_ARCHIVEADMIN, or assign the role in Enterprise applications, Users and groups.",
+        }
+      : {
+          code: "roles",
+          title: "App roles given to AD groups",
+          status: roleless.length === 0 ? "done" : "todo",
+          detail:
+            roleless.length === 0
+              ? "Every role for people is held by at least one AD group synced to Entra."
+              : `No group seen holding ${roleless.join(", ")}. Assign the roles to AD groups in Enterprise applications, Users and groups.`,
+        },
     {
       code: "token",
       title: "Your token carries your AD identity",
@@ -107,8 +131,9 @@ function SetupSteps({ s }: { s: IdentitySettings }) {
           <ul className="stack" style={{ margin: 0, paddingLeft: 20 }}>
             <li>People sign in to the portal with Entra ID.</li>
             <li>
-              The app roles (ArchiveAdmin, DataSteward, User) go to AD groups that Entra Connect
-              syncs to Entra.
+              {s.role_holders === "people"
+                ? "ArchiveAdmin and DataSteward go to people named in Entra, and every AD user in the tenant is a User."
+                : "The app roles (ArchiveAdmin, DataSteward, User) go to AD groups that Entra Connect syncs to Entra."}
             </li>
             <li>Teams cards reach people through Entra.</li>
             <li>
@@ -214,7 +239,7 @@ export function IdentityPage() {
             <tr>
               <th scope="col">Role</th>
               <th scope="col">For</th>
-              <th scope="col">AD groups that hold it</th>
+              <th scope="col">Held by</th>
               <th scope="col" className="col-num">
                 People seen (30 days)
               </th>
@@ -228,11 +253,7 @@ export function IdentityPage() {
                 <td>
                   {r.member_types.map((t) => (t === "user" ? "people" : "API clients")).join(", ")}
                 </td>
-                <td>
-                  {r.groups.length
-                    ? r.groups.map((g) => g.display_name ?? g.sid ?? g.object_id ?? "?").join(", ")
-                    : "—"}
-                </td>
+                <td>{heldBy(r, s.role_holders === "people")}</td>
                 <td className="num">{r.people_seen}</td>
                 <td>
                   {r.source === "graph" ? "Graph" : r.source === "sign_ins" ? "Sign-ins" : r.source}

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { browserNav } from "../../api/client";
 import { cloudState, seedAzureConnected } from "../../mocks/cloud";
 import { requestLog } from "../../mocks/handlers";
+import { identityState } from "../../mocks/settings";
 import { expectNoAxeViolations } from "../../test/axe";
 import { renderApp } from "../../test/render";
 import { cloudPolling } from "./cloudQueries";
@@ -215,6 +216,35 @@ describe("Identity", () => {
     expect(screen.getByRole("heading", { name: "Microsoft Graph" })).toBeInTheDocument();
     expect(await screen.findByRole("heading", { name: "Who am I" })).toBeInTheDocument();
     await expectNoAxeViolations(container);
+  });
+
+  it("with named people, lists them and calls every AD user a User", async () => {
+    identityState.roleHolders = "people";
+    try {
+      const { container } = renderApp("/settings/identity");
+      const list = await screen.findByRole("list", { name: "Identity setup" });
+      const item = (name: RegExp) =>
+        within(list)
+          .getAllByRole("listitem")
+          .find((li) => name.test(li.textContent));
+      // No "give the roles to AD groups" to-do: nobody expects groups here.
+      expect(item(/App roles given to AD groups/)).toBeUndefined();
+      expect(item(/App roles given to named people/)).toHaveTextContent("Done");
+      expect(
+        screen.getByText(
+          "ArchiveAdmin and DataSteward go to people named in Entra, and every AD user in the tenant is a User.",
+        ),
+      ).toBeInTheDocument();
+      const table = screen.getByRole("table", { name: "App roles" });
+      const row = (role: string) =>
+        within(table).getByRole("row", { name: new RegExp(`^${role}`) });
+      expect(row("ArchiveAdmin")).toHaveTextContent("Ann Admin");
+      expect(row("DataSteward")).toHaveTextContent("Sam Steward");
+      expect(row("User")).toHaveTextContent("Every AD user in the tenant");
+      await expectNoAxeViolations(container);
+    } finally {
+      identityState.roleHolders = "groups";
+    }
   });
 });
 

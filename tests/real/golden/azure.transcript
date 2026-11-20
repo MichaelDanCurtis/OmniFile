@@ -86,7 +86,7 @@ scp $OUT/omnifile-edge_0.0.0.qcow2 omnitest@192.0.2.10:/srv/ofreal/release/appli
 ssh omnitest@192.0.2.10 mkdir -p /srv/ofreal/release/appliance-files
 scp $OUT/release/appliance-files/SHA256SUMS omnitest@192.0.2.10:/srv/ofreal/release/appliance-files/SHA256SUMS  # 92 bytes
 ssh omnitest@192.0.2.10 mkdir -p /srv/ofreal
-scp $OUT/payload-deploy.tar omnitest@192.0.2.10:/srv/ofreal/payload-deploy.tar  # 605696 bytes
+scp $OUT/payload-deploy.tar omnitest@192.0.2.10:/srv/ofreal/payload-deploy.tar  # 606720 bytes
 ssh omnitest@192.0.2.10 mkdir -p /srv/ofreal/release/deploy && tar -C /srv/ofreal/release/deploy --strip-components=1 -xf /srv/ofreal/payload-deploy.tar
 ssh omnitest@192.0.2.10 sudo /srv/ofreal/vm/samba-dc.sh OFREAL.TEST  # stdin 4 lines
 ssh omnitest@192.0.2.10 mkdir -p /srv/ofreal/release

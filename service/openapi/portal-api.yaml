@@ -7694,8 +7694,12 @@ components:
 
     IdentitySettings:
       type: object
-      required: [tenant_id, client_id, api_audiences, consent, graph, roles]
+      required: [tenant_id, client_id, api_audiences, consent, graph, roles, role_holders]
       properties:
+        role_holders:
+          type: string
+          x-extensible-enum: [groups, people]
+          description: "Who holds the portal's roles (decision 89): groups, or named people with every AD user in the tenant a User."
         tenant_id: { type: string }
         client_id: { type: string }
         api_audiences: { type: array, items: { type: string } }
@@ -7711,7 +7715,7 @@ components:
           type: array
           items:
             type: object
-            required: [role, member_types, groups, people_seen, source]
+            required: [role, member_types, groups, people, people_seen, source]
             properties:
               role: { type: string }
               member_types: { type: array, items: { type: string, enum: [user, application] } }
@@ -7724,6 +7728,15 @@ components:
                     object_id: { type: [string, "null"] }
                     display_name: { type: [string, "null"] }
                     sid: { type: [string, "null"] }
+              people:
+                type: array
+                description: People the role is assigned to by name (decision 89), from Graph; empty when Graph can't be read.
+                items:
+                  type: object
+                  required: [object_id, display_name]
+                  properties:
+                    object_id: { type: [string, "null"] }
+                    display_name: { type: [string, "null"] }
               people_seen: { type: integer, description: People who held it at a portal sign-in in the last 30 days. }
               source: { type: string, x-extensible-enum: [graph, sign_ins] }
 

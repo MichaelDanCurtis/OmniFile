@@ -816,8 +816,16 @@ def az(argv: list[str]) -> None:
             if sp is None:
                 die(f"Resource '{sid}' does not exist", 3)
             app = next((a for a in s["apps"] if a["appId"] == sp["appId"]), {})
-            # A service principal shows its application's roles (register.sh's --app-roles).
-            emit({**sp, "appRoles": app.get("appRoles", [])}, opts)
+            # A service principal shows its application's roles (register.sh's --app-roles), and
+            # "Assignment required" off, Entra's default and register.sh's.
+            emit(
+                {
+                    "appRoleAssignmentRequired": False,
+                    **sp,
+                    "appRoles": app.get("appRoles", []),
+                },
+                opts,
+            )
     elif v == "ad app show":
         aid = opt(opts, "--id")
         a = next((x for x in s["apps"] if aid in (x["id"], x["appId"])), None)

@@ -234,6 +234,45 @@ def test_a_user_with_no_app_role_gets_only_me(web, sql):
     assert r.status_code == 403
 
 
+def test_with_named_people_every_ad_user_is_a_user_and_nobody_else_is(web, sql):
+    """Decision 89: OMNIFILE_WEB_ROLE_HOLDERS=people makes a token with an AD SID a User;
+    a guest or cloud-only account (no SID) gets only what Entra gave."""
+    w = seed(sql)
+    web.services.settings.role_holders = "people"
+    ad = w.user("plain", roles=[], groups=[w.g_readers], sid_rid=3012)
+    b = web.browser(ad)
+    assert b.get("/v1/me").json()["roles"] == ["User"]
+    assert b.get("/v1/shares").status_code == 200
+    # What it sees is still the files' ACLs: the reader group's share and nothing more.
+    assert [s["share_id"] for s in b.get("/v1/shares").json()["items"]] == [str(w.share_id)]
+    details = sql.execute(
+        "SELECT details FROM catalog.audit_log WHERE action = 'portal.sign_in'"
+        " AND actor_sid = %s ORDER BY 1 DESC LIMIT 1",
+        (ad["sid"],),
+    ).fetchone()[0]
+    assert details["roles"] == ["User"] and details["user_role"] == "tenant"
+    # A named DataSteward keeps the role and is a User as well.
+    named = web.browser(w.user("named", roles=["DataSteward"], sid_rid=3013))
+    assert named.get("/v1/me").json()["roles"] == ["DataSteward", "User"]
+    # No SID (a guest, a cloud-only account): no role unless Entra gave one.
+    guest_oid = "4b5c0f70-9a77-4a40-8b7e-6f6e0f7c0a01"
+    guest = web.browser({"oid": guest_oid, "name": "Guest", "roles": []})
+    assert guest.get("/v1/me").json()["roles"] == []
+    assert guest.get("/v1/shares").json()["code"] == "role_required"
+    # With groups (the default), the same AD user has no role.
+    web.services.settings.role_holders = "groups"
+    again = web.browser(w.user("plain2", roles=[], groups=[w.g_readers], sid_rid=3014))
+    assert again.get("/v1/me").json()["roles"] == []
+    assert again.get("/v1/shares").status_code == 403
+
+
+def test_the_role_holders_setting_is_groups_or_people():
+    assert web_main.role_holders(None) == "groups"
+    assert web_main.role_holders("people") == "people"
+    with pytest.raises(SystemExit):
+        web_main.role_holders("everyone")
+
+
 def test_roles_from_the_token_are_filtered(web, sql):
     w = seed(sql)
     b = web.browser(w.user("x", roles=["User", "Policy.Propose", "God"], sid_rid=3011))

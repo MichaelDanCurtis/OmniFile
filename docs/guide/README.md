@@ -71,7 +71,7 @@ You need these people, or one person with all of these rights:
 |---|---|
 | **Azure:** Owner of the subscription, or Contributor plus User Access Administrator | The deployment creates role assignments for the service's identities. |
 | **Entra:** Application Administrator and Privileged Role Administrator (or Global Administrator) | The portal's app registration, and giving the service's identity its Microsoft Graph permissions (that is the admin consent). |
-| **Entra ID P1** or higher in the tenant | AD groups hold the portal's roles. Group-based role assignment needs P1. |
+| **Entra ID P1** or higher in the tenant, only if AD groups will hold the portal's roles | Giving an app's roles to a group needs P1. Without it, name the people instead (section 1.5). |
 | **Teams administrator** | Allowing the OmniFile Teams app for your users. |
 | **Exchange administrator** | Letting the service send fallback email from one mailbox, `OMNI_NOTIFY_SENDER` (section 8.2). |
 | **Network:** whoever runs your ExpressRoute or VPN and the hub network | Peering the service's network to the hub (section 6). |
@@ -187,10 +187,26 @@ the filer uses Domain Users (the AD primary group), so the script doesn't set on
 Create these AD security groups (any names; write them in `omnifile.env`):
 
 - **the filer's administrators** (`OMNI_AD_ADMIN_GROUP`): they get sudo and ssh on the filer;
-- **the portal's roles**: ArchiveAdmin (`OMNI_GROUP_ARCHIVEADMIN`: policies, shares, WORM, audit),
-  DataSteward (`OMNI_GROUP_DATASTEWARD`: tier pins and holds), and User (`OMNI_GROUP_USER`: everyone
-  who uses the portal);
+- **the portal's roles**, if groups will hold them (below): ArchiveAdmin (`OMNI_GROUP_ARCHIVEADMIN`:
+  policies, shares, WORM, audit), DataSteward (`OMNI_GROUP_DATASTEWARD`: tier pins and holds), and
+  User (`OMNI_GROUP_USER`: everyone who uses the portal);
 - **each share's** Owners, Writers and Readers.
+
+**Who holds the portal's roles** is your choice now, in `omnifile.env` (`OMNI_ROLE_HOLDERS`):
+
+| | `groups` | `people` |
+|---|---|---|
+| ArchiveAdmin and DataSteward | the AD groups above | the people you name in `OMNI_PEOPLE_ARCHIVEADMIN` and `OMNI_PEOPLE_DATASTEWARD` (sign-in names, the UPNs Entra shows, separated by spaces) |
+| User | the AD group `OMNI_GROUP_USER` | every AD user in your tenant, with no assignment |
+| Adding someone later | add them to the AD group | an Entra admin runs step 30 again with the new name, or assigns the role in Entra (Enterprise applications, the portal's app, Users and groups) |
+| Needs | Entra ID P1 | nothing more than Entra ID Free, and the portal's app with "Assignment required" off (the default; step 30 checks it) |
+
+Either way, what a person sees in the portal is limited by their AD permissions on each file: a role
+decides what they may do, never which files they may see. With `people`, "every AD user" means an
+account Entra Connect synced from your AD; a guest or a cloud-only account gets User only if you name it
+as an ArchiveAdmin or DataSteward. You can change your mind later: edit `omnifile.env`, run step 30, then
+deploy again (section 9.3). Switching doesn't take the roles away from the other mode's holders: remove
+those in Entra (Enterprise applications, the portal's app, Users and groups).
 
 Entra Connect must sync these groups and their members to Entra, with `onPremisesSecurityIdentifier`
 (the default). That is how OmniFile matches an AD user opening a file to the person it sends a
@@ -707,15 +723,17 @@ command lists `Application Mail.Send` with `InScope` true for the sender mailbox
 The worker may send as that mailbox and no other. (The deployment passes `OMNI_NOTIFY_SENDER` to the
 worker as `notifySender`.)
 
-Give your AD groups the portal's roles:
+Give the portal's roles to the groups or the people you chose in section 1.5:
 
 ```bash guide-step=30 on=workstation
 . ./omnifile.env && . ./omnifile.state.env
-docs/guide/tools/assign-app-roles.sh --app-id "$OMNI_WEB_CLIENT_ID" \
-  "ArchiveAdmin=$OMNI_GROUP_ARCHIVEADMIN" "DataSteward=$OMNI_GROUP_DATASTEWARD" "User=$OMNI_GROUP_USER"
+docs/guide/tools/assign-app-roles.sh --app-id "$OMNI_WEB_CLIENT_ID" --portal-roles
 ```
 
-Success: `<group> now has <role>` for each (or `already has` on a rerun).
+Success: `<group or person> now has <role>` for each (or `already has` on a rerun). With `groups` on a
+tenant without Entra ID P1, it stops before assigning anything and says so: set
+`OMNI_ROLE_HOLDERS=people` and name the people in `omnifile.env`, then run this step again. Phase 2's
+deployment (section 9) gives the service the choice.
 
 Allow the Teams app for your users. A Teams administrator does this in the Teams admin centre:
 
@@ -951,7 +969,7 @@ caller for a client certificate, which only edges and the relay have).
 ## 10. Sign in to the portal
 
 Open the portal's address (`OMNI_WEB_URL`, recorded in `omnifile.state.env`) in a browser on your
-users' network, and sign in with an account in the ArchiveAdmin group:
+users' network, and sign in as an ArchiveAdmin (in its group, or named in `OMNI_PEOPLE_ARCHIVEADMIN`):
 
 ```text guide-step=47 on=portal manual=yes
 open /
@@ -961,8 +979,8 @@ expect Edges
 ```
 
 Success: you are signed in, and the Edges page opens (empty for now). If the portal says you have no
-role, check that your account is in `OMNI_GROUP_ARCHIVEADMIN` and sign in again (Entra adds the role
-at sign-in).
+role, check that your account is in `OMNI_GROUP_ARCHIVEADMIN` (or named in `OMNI_PEOPLE_ARCHIVEADMIN`,
+and step 30 ran) and sign in again (Entra adds the role at sign-in).
 
 ## 11. Import the edge appliance
 

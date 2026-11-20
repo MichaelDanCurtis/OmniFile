@@ -27,6 +27,48 @@ const TENANT = "8f3a2b1c-0d9e-4f8a-b7c6-d5e4f3a2b1c0";
 const PORTAL_APP = "1d2c3b4a-5e6f-4a7b-8c9d-0e1f2a3b4c5d";
 const AUDIENCE = `api://${PORTAL_APP}`;
 
+/** Who holds the portal's roles in the mock deployment (decision 89); tests switch it. */
+export const identityState: { roleHolders: "groups" | "people" } = { roleHolders: "groups" };
+
+/** Settings, Identity when named people hold the roles, read from Graph. */
+function peopleIdentity() {
+  const person = (
+    role: string,
+    people: { object_id: string; display_name: string }[],
+    seen: number,
+  ) => ({
+    role,
+    member_types: ["user"],
+    groups: [],
+    people,
+    people_seen: seen,
+    source: "graph",
+  });
+  return {
+    role_holders: "people",
+    tenant_id: TENANT,
+    client_id: PORTAL_APP,
+    api_audiences: [AUDIENCE, PORTAL_APP],
+    consent: {
+      status: "granted",
+      detail: "Tenant-wide consent for openid, profile.",
+      url: `https://login.microsoftonline.com/${TENANT}/adminconsent?client_id=${PORTAL_APP}`,
+    },
+    graph: {
+      code: "graph",
+      status: "ok",
+      title: "Reading Entra from Graph",
+      message: "Roles, groups and consent read from Graph now.",
+      fix: null,
+    },
+    roles: [
+      person("ArchiveAdmin", [{ object_id: "u-ann", display_name: "Ann Admin" }], 1),
+      person("DataSteward", [{ object_id: "u-sam", display_name: "Sam Steward" }], 1),
+      person("User", [], 37),
+    ],
+  };
+}
+
 function problem(status: number, code: string, detail: string, extra: object = {}) {
   return HttpResponse.json(
     {
@@ -398,7 +440,9 @@ export function settingsHandlers(getDb: () => MockDb) {
 
     http.get("*/v1/settings/identity", () => {
       if (!admin()) return refuse();
+      if (identityState.roleHolders === "people") return json(peopleIdentity());
       return json({
+        role_holders: "groups",
         tenant_id: TENANT,
         client_id: PORTAL_APP,
         api_audiences: [AUDIENCE, PORTAL_APP],
@@ -426,6 +470,7 @@ export function settingsHandlers(getDb: () => MockDb) {
                 sid: "S-1-5-21-1000-2000-3000-2201",
               },
             ],
+            people: [],
             people_seen: 2,
             source: "sign_ins",
           },
@@ -439,14 +484,23 @@ export function settingsHandlers(getDb: () => MockDb) {
                 sid: "S-1-5-21-1000-2000-3000-2202",
               },
             ],
+            people: [],
             people_seen: 3,
             source: "sign_ins",
           },
-          { role: "User", member_types: ["user"], groups: [], people_seen: 41, source: "sign_ins" },
+          {
+            role: "User",
+            member_types: ["user"],
+            groups: [],
+            people: [],
+            people_seen: 41,
+            source: "sign_ins",
+          },
           {
             role: "Policy.Propose",
             member_types: ["application"],
             groups: [],
+            people: [],
             people_seen: 0,
             source: "sign_ins",
           },

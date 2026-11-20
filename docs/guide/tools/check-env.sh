@@ -22,7 +22,12 @@ guid='^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{1
 cidr='^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$'
 # May be empty.
 optional=" OMNI_DEPLOYMENT_SIZE OMNI_DNS_ZONE_RG OMNI_ALERT_ACTION_GROUP_ID OMNI_AD_JOIN_OU OMNI_TEST_HUB_NO_GATEWAY OMNI_TEST_RUN_ID OMNI_TEST_RUN_EXPIRES OMNI_TEST_PG_SKU_TIER OMNI_TEST_PG_SKU_NAME OMNI_TEST_PG_STORAGE_GB OMNI_TEST_KV_PURGE_PROTECTION OMNI_TEST_KV_SOFT_DELETE_DAYS OMNI_TEST_API_MIN_REPLICAS OMNI_TEST_API_MAX_REPLICAS OMNI_TEST_WORKER_MAX_REPLICAS OMNI_TEST_WORM_RETENTION_DAYS OMNI_TEST_LOCK_WORM OMNI_TEST_BLOB_SOFT_DELETE_DAYS OMNI_TEST_ALERTS OMNI_AWS_NAME_SUFFIX OMNI_API_CLIENT_APP_ID OMNI_API_CLIENT_NAME OMNI_API_CLIENT_SCOPES OMNI_API_CLIENT_OWNER OMNI_AWS_ACCOUNT_ID OMNI_AWS_REGION \
-OMNI_AWS_VPC_ID OMNI_AWS_SUBNET_IDS OMNI_AWS_SG_ID OMNI_AWS_SOURCE_BUCKETS OMNI_AWS_OPS_BUCKET "
+OMNI_AWS_VPC_ID OMNI_AWS_SUBNET_IDS OMNI_AWS_SG_ID OMNI_AWS_SOURCE_BUCKETS OMNI_AWS_OPS_BUCKET \
+OMNI_PEOPLE_ARCHIVEADMIN OMNI_PEOPLE_DATASTEWARD OMNI_ROLE_HOLDERS "
+# With the portal's roles held by named people (section 1.5), the role groups aren't used.
+if [ "${OMNI_ROLE_HOLDERS:-}" = people ]; then
+  optional="$optional OMNI_GROUP_ARCHIVEADMIN OMNI_GROUP_DATASTEWARD OMNI_GROUP_USER "
+fi
 
 while IFS= read -r name; do
   if [ -z "${!name+set}" ]; then
@@ -105,6 +110,16 @@ if [ -n "$set_tests" ]; then
   echo "  note: test-only values are set ($set_tests ): this is a test run, never a client deployment"
 fi
 match OMNI_NOTIFY_SENDER '^[^@ ]+@[^@ ]+$' "a mailbox address"
+match OMNI_ROLE_HOLDERS '^(groups|people)$' "groups or people, or empty for groups (section 1.5)"
+if [ "${OMNI_ROLE_HOLDERS:-}" = people ]; then
+  admins=${OMNI_PEOPLE_ARCHIVEADMIN-}
+  [ -n "${admins// /}" ] || problem OMNI_PEOPLE_ARCHIVEADMIN "name at least one ArchiveAdmin (OMNI_ROLE_HOLDERS=people)"
+  for n in OMNI_PEOPLE_ARCHIVEADMIN OMNI_PEOPLE_DATASTEWARD; do
+    for who in ${!n-}; do
+      [[ $who =~ ^[^@[:space:]]+@[^@[:space:]]+$ ]] || problem "$n" "'$who' is not a sign-in name such as ann@contoso.example"
+    done
+  done
+fi
 match OMNI_AD_DOMAIN '^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)+$' "the AD DNS domain, such as corp.example"
 match OMNI_AD_WORKGROUP '^[A-Za-z0-9-]{1,15}$' "the short domain name, at most 15 characters"
 match OMNI_FIRST_UID '^[0-9]+$' "a number"

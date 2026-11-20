@@ -47,7 +47,13 @@ async def _seen(db, now: datetime) -> dict[str, int]:
 
 
 async def identity_settings(
-    db, probes, tenant_id: str, client_id: str, audiences: list[str], now: datetime
+    db,
+    probes,
+    tenant_id: str,
+    client_id: str,
+    audiences: list[str],
+    now: datetime,
+    role_holders: str = "groups",
 ) -> dict[str, Any]:
     seen = await _seen(db, now)
     roles: list[dict[str, Any]] = [
@@ -55,6 +61,7 @@ async def identity_settings(
             "role": r,
             "member_types": ["user"],
             "groups": [],
+            "people": [],
             "people_seen": seen.get(r, 0),
             "source": "sign_ins",
         }
@@ -64,6 +71,7 @@ async def identity_settings(
             "role": r,
             "member_types": ["application"],
             "groups": [],
+            "people": [],
             "people_seen": 0,
             "source": "sign_ins",
         }
@@ -96,8 +104,18 @@ async def identity_settings(
                 f"/servicePrincipals/{quote(str(sp.get('id')))}/appRoleAssignedTo?$top=999"
             )
             by_role: dict[str, list[dict[str, Any]]] = {}
+            people: dict[str, list[dict[str, Any]]] = {}
             for a in assigned.get("value") or []:
                 role = defs.get(a.get("appRoleId"))
+                if role is not None and a.get("principalType") == "User":
+                    # Named people (decision 89), by Entra's name only: no SID is looked up.
+                    people.setdefault(role, []).append(
+                        {
+                            "object_id": a.get("principalId"),
+                            "display_name": a.get("principalDisplayName"),
+                        }
+                    )
+                    continue
                 if role is None or a.get("principalType") != "Group":
                     continue
                 by_role.setdefault(role, []).append(
@@ -112,6 +130,7 @@ async def identity_settings(
                 r["groups"] = [
                     {**g, "sid": sids.get(g["display_name"])} for g in by_role.get(r["role"], [])
                 ]
+                r["people"] = people.get(r["role"], [])
                 r["source"] = "graph"
             grants = await probes.graph_get(
                 f"/oauth2PermissionGrants?$filter=clientId eq '{quote(str(sp.get('id')))}'"
@@ -151,6 +170,7 @@ async def identity_settings(
         "consent": consent,
         "graph": graph,
         "roles": roles,
+        "role_holders": role_holders,
     }
 
 

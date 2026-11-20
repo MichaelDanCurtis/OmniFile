@@ -175,6 +175,12 @@ param webOrigin string = ''
 param webClientId string = ''
 @description('Bearer audiences web accepts on the partner API: the registration\'s application ID URI and client id (register.sh). Empty: partner tokens are refused.')
 param webApiAudiences array = []
+@description('Who holds the portal\'s roles (decision 89). groups: AD groups, through Entra app role assignments (needs Entra ID P1). people: named people hold ArchiveAdmin and DataSteward, and every AD user in the tenant is a User with no assignment.')
+@allowed([
+  'groups'
+  'people'
+])
+param webRoleHolders string = 'groups'
 @description('Source address range of the environment ingress as the relay container sees it, so per-IP rate limiting uses real client addresses (uvicorn forwarded-allow-ips). Never *. Empty = the relay subnet. VERIFY the range after the first deployment.')
 param relayForwardedAllowIps string = ''
 @description('Second phase. After the CA has issued the relay\'s client certificate and the three secrets exist in Key Vault (relay-mtls-cert, relay-mtls-key, relay-ca-bundle), set true and redeploy: the relay identity then gets read access to those three secrets only, and the relay mounts them.')
@@ -1616,6 +1622,10 @@ module web 'modules/app.bicep' = if (deployWeb) {
       {
         name: 'OMNIFILE_WEB_API_AUDIENCES'
         value: join(webApiAudiences, ',')
+      }
+      {
+        name: 'OMNIFILE_WEB_ROLE_HOLDERS'
+        value: webRoleHolders
       }
     ], webSettingsEnv, appKeysEnabled ? [
       {

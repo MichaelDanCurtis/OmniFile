@@ -69,7 +69,7 @@ Changes made directly in Windows Explorer stay valid. The edge reads ACLs back a
   - The groups are resolved by SID. For a portal or Teams user, the route is Entra objectId → `onPremisesSecurityIdentifier` → transitive group SIDs, from Graph or from the edge's winbind.
   - A Teams button works only for the intended recipient, who passed this check when the card was sent.
 - **The portal shows only what the user may read.** Folder and file listings are filtered by the ACL snapshot, so names of files a user can't open aren't revealed.
-  - Admin roles (`ArchiveAdmin`, `DataSteward`) are **AD groups** synced to Entra app roles, as already designed.
+  - Admin roles (`ArchiveAdmin`, `DataSteward`) are Entra app roles held by **AD groups** synced to Entra, or by **named people** where the installer chose that (decision 89; then every AD user in the tenant is a User).
   - A DataSteward manages folders' tiering, not their content access, unless also an Owner.
 - **The partner API** (Prizmanyx) acts as an application with app roles, not as a user. Its recalls are dataset-level and audited.
 - **Migration namespace (decision 19):** S3 objects carry no ACLs. Each registered source (`POST /v1/sources`) must name its Owners, Writers and Readers groups, which become the default ACL of its folders. Files presented from S3 inherit them, so they are never world-readable.
